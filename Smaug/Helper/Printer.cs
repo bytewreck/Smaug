@@ -23,7 +23,7 @@ namespace Smaug
                 foreach (var snippet in snippets)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine("\t" + snippet);
+                    Console.WriteLine("\t- " + snippet);
                 }
 
                 Console.ResetColor();

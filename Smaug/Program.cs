@@ -40,6 +40,12 @@ namespace Smaug
                 {
                     Printer.Information("Identified {0} total directories", directories.Count);
 
+                    if (ProgramOptions.SearchKeywords.Count == 0)
+                    {
+                        Printer.Information("No keywords specified. Restoring default keywords.");
+                        ProgramOptions.SearchKeywords.Add("pass(w|wd|wrd|word)(\\s*=)?");
+                    }
+         
                     int index = 0;
                     int length = directories.Count;
 
@@ -158,6 +164,7 @@ namespace Smaug
             new DataRuleCode(),
             new DataRuleOfficeExcel(),
             new DataRuleOfficeWord(),
+            new DataRuleScript(),
 
             new DataRuleKeyword(),
         };

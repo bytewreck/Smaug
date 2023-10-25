@@ -15,6 +15,8 @@ namespace Smaug.RulesMeta.File
              
             /* Credential files */
             ".htpasswd",                        // Apache
+            "config.rb",                        // Chef
+            "knife.rb",                         // Chef
             "login data",                       // Chrome
             "cacpmscanner.exe.config",          // CyberArk
             "padr.ini",                         // CyberArk
@@ -34,6 +36,7 @@ namespace Smaug.RulesMeta.File
             ".gitconfig",                       // Git
             "credentials.xml",                  // Jenkins
             "jenkins.plugins.publish_over_ssh.bapsshpublisherplugin.xml",
+            "localsettings.php",                // MediaWiki
             "mobaxterm.ini",                    // MobaXterm
             "confcons.xml",                     // MremoteNG
             "mru.dat",                          // MSSQL
@@ -42,6 +45,9 @@ namespace Smaug.RulesMeta.File
             "pwd.db",                           // OpenBSD
             ".pgpass",                          // PostgreSQL
             "proftpdpasswd",                    // ProFTPd
+            "secret_token.rb",                  // Ruby on Rails
+            "secrets.yml",                      // Ruby on Rails > 4
+            "database.yml",                     // Ruby on Rails > 4
             "sftp-config.json",                 // Sublime SFTP
             "passwd",                           // Unix
             "shadow",                           // Unix
@@ -79,7 +85,7 @@ namespace Smaug.RulesMeta.File
 
         private HashSet<string> RejectNames { get; } = new HashSet<string>()
         {
-            "", // todo
+
         };
 
         public bool? TestRule(string path)

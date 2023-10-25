@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="Helper\Printer.cs" />
     <Compile Include="RulesData\DataRule.cs" />
+    <Compile Include="RulesData\File\DataRuleScript.cs" />
     <Compile Include="RulesData\File\DataRuleCode.cs" />
     <Compile Include="RulesData\File\DataRuleOfficeWord.cs" />
     <Compile Include="RulesData\File\DataRuleOfficeExcel.cs" />

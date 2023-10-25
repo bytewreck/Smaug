@@ -12,11 +12,7 @@ namespace Smaug
         /* File criteria */
         public static DateTime AfterDate { get; private set; } = DateTime.MinValue;
         public static DateTime BeforeDate { get; private set; } = DateTime.MaxValue;
-#if DEBUG
         public static long MaxFileSize { get; private set; } = 1024 * 1024;
-#else
-        public static long MaxFileSize { get; private set; } = 1024;
-#endif
 
         /* Search criteria */
         public static SortedSet<string> SearchComputers { get; } = new SortedSet<string>();
@@ -28,11 +24,7 @@ namespace Smaug
 #endif
 
         /* Search keywords */
-#if DEBUG
-        public static SortedSet<string> SearchKeywords { get; } = new SortedSet<string>() { "password" };
-#else
         public static SortedSet<string> SearchKeywords { get; } = new SortedSet<string>();
-#endif
 
         /* Performance criteria */
         public static int ThreadCount { get; private set; } = 10;
@@ -89,12 +81,12 @@ namespace Smaug
                 },
                 {
                     "k|keyword=",
-                    "Include keyword in search",
+                    "Include keyword in search (supports regex)",
                         x => SearchKeywords.Add(x)
                 },
                 {
                     "m|maxsize=",
-                    "Maximum file size in bytes (default: 1024)\n\tThe .NET framework supports a maximum of MAXINT (2147483647 bytes)",
+                    "Maximum file size in bytes (default: 1048576 (1 MiB))\n\tThe .NET framework supports a maximum of MAXINT (2147483647 bytes)",
                         x =>
                     {
                         if (int.TryParse(x, out int mfs))

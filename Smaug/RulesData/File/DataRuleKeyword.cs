@@ -10,7 +10,7 @@ namespace Smaug.RulesData.File
         {
             var result = base.TestRule(path, contents, ref snippets);
 
-            if (result.Value == true)
+            if (result.Value)
                 return true;
             else
                 return null;
