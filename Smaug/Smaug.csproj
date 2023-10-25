@@ -53,8 +53,7 @@
     <Compile Include="RulesData\DataRule.cs" />
     <Compile Include="RulesData\File\DataRuleScript.cs" />
     <Compile Include="RulesData\File\DataRuleCode.cs" />
-    <Compile Include="RulesData\File\DataRuleOfficeWord.cs" />
-    <Compile Include="RulesData\File\DataRuleOfficeExcel.cs" />
+    <Compile Include="RulesData\File\DataRuleOffice.cs" />
     <Compile Include="RulesData\File\DataRuleConfig.cs" />
     <Compile Include="RulesMeta\Directory\MetaRulePath.cs" />
     <Compile Include="RulesMeta\File\MetaRuleExtension.cs" />

@@ -38,19 +38,24 @@ namespace Smaug
                     Printer.Error("Could not identify any targets");
                 else
                 {
-                    Printer.Information("Identified {0} total directories", directories.Count);
-
-                    if (ProgramOptions.SearchFiletypes.Count == 0)
-                    {
-                        Printer.Information("No filetypes specified. Restoring default filetypes.");
-                    }
+                    Printer.Information("Targeting {0} total directories", directories.Count);
 
                     if (ProgramOptions.SearchKeywords.Count == 0)
                     {
                         Printer.Information("No keywords specified. Restoring default keywords.");
-                        ProgramOptions.SearchKeywords.Add("pass(word|wrd|wd|w)(\\s*=)?");
+                        ProgramOptions.SearchKeywords.Add("CREATE\\s+USER\\s+(IF\\s+NOT\\s+EXISTS\\s+)?[^\\r\\n]{0,32}\\s+IDENTIFIED\\s+BY");
+                        ProgramOptions.SearchKeywords.Add("CREATE\\s+LOGIN\\s+[^\\r\\n]{0,256}\\s+WITH\\s+PASSWORD");
+                        ProgramOptions.SearchKeywords.Add("-----BEGIN\\s+([^\\r\\n]{0,100}\\s+)?PRIVATE\\s+KEY(\\s+BLOCK)?-----");
+                        ProgramOptions.SearchKeywords.Add("((\"|')?AWS_ACCESS_KEY_ID(\"|')?\\s*(:|=>|=)\\s*)?(\"|')?AKIA[\\w]{16}(\"|')?");
+                        ProgramOptions.SearchKeywords.Add("(\"|')?AWS_SECRET_ACCESS_KEY(\"|')?\\s*(:|=>|=)\\s*(\"|')?[\\w+/=]{40}(\"|')?");
+                        ProgramOptions.SearchKeywords.Add("s3://[a-z0-9\\.\\-]{3,64}/?");
+                        ProgramOptions.SearchKeywords.Add("pass(word|wrd|wd|w)(\\s*=\\s*(\"|')?)?");
+                        ProgramOptions.SearchKeywords.Add("<pass(word|wrd|wd|w)>[^\\r\\n]+</pass(word|wrd|wd|w)>");
+                        ProgramOptions.SearchKeywords.Add("secret(\\s*=\\s*(\"|')?)?");
+                        ProgramOptions.SearchKeywords.Add("(api|aws|private)[_\\-\\.\\s]?key(\\s*=\\s*(\"|')?)?");
+                        ProgramOptions.SearchKeywords.Add("client_secret(\\s*=\\s*(\"|')?)?");
                     }
-         
+
                     int index = 0;
                     int length = directories.Count;
 
@@ -94,7 +99,7 @@ namespace Smaug
                     }
                 }
             }
-            catch (UnauthorizedAccessException e)
+            catch (UnauthorizedAccessException)
             {
                 if (ProgramOptions.Verbose)
                     Printer.Debug("Rejecting (directory:noaccess): {0}", path);
@@ -128,12 +133,12 @@ namespace Smaug
                     }
                 }
             }
-            catch (FileFormatException e)
+            catch (FileFormatException)
             {
                 if (ProgramOptions.Verbose)
                     Printer.Debug("Rejecting (file:corrupt): {0}", path);
             }
-            catch (UnauthorizedAccessException e)
+            catch (UnauthorizedAccessException)
             {
                 if (ProgramOptions.Verbose)
                     Printer.Debug("Rejecting (file:noaccess): {0}", path);
@@ -183,8 +188,7 @@ namespace Smaug
         {
             new DataRuleCode(),
             new DataRuleConfig(),
-            new DataRuleOfficeExcel(),
-            new DataRuleOfficeWord(),
+            new DataRuleOffice(),
             new DataRuleScript(),
         };
 

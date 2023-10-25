@@ -43,8 +43,10 @@ namespace Smaug.RulesMeta.File
             "sqlstudio.bin",                    // MSSQL
             "usersettings.xml",                 // MSSQL
             "pwd.db",                           // OpenBSD
+            "accounts.xml",                     // Pidgin
             ".pgpass",                          // PostgreSQL
             "proftpdpasswd",                    // ProFTPd
+            "credentials",                      // RubyGems
             "secret_token.rb",                  // Ruby on Rails
             "secrets.yml",                      // Ruby on Rails > 4
             "database.yml",                     // Ruby on Rails > 4
@@ -70,6 +72,7 @@ namespace Smaug.RulesMeta.File
             /* Resource files */
             ".bashrc",                          // Bash
             ".profile",                         // Bash
+            ".cshrc",                           // C shell
             ".netrc",                           // Curl (Unix)
             "_netrc",                           // Curl (Windows)
             ".env",                             // NodeJS

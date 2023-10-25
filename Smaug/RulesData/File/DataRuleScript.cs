@@ -13,20 +13,20 @@ namespace Smaug.RulesData.File
     {
         private SortedSet<string> PatternsWindowsCommandCredentials { get; } = new SortedSet<string>()
         {
-            "certreq(.exe)?[^\\r\\n]{0,400}\\s-p\\s",
-            "cmdkey(.exe)?\\s[^\\r\\n]{0,400}/pass:",
-            "curl(.exe)?[^\\r\\n]{0,400}\\s(-u|--user)\\s",
-            "driverquery(.exe)?\\s[^\\r\\n]{0,400}/p\\s",
-            "gpresult(.exe)?\\s[^\\r\\n]{0,400}/p\\s",
-            "ksetup(.exe)?\\s[^\\r\\n]{0,400}/(changepassword|setcomputerpassword)\\s",
-            "logman(.exe)?[^\\r\\n]{0,400}\\s--?u\\s",
-            "net(.exe)?\\s+use\\s[^\\r\\n]{0,400}/user:",
+            "certreq(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?-p\\s",
+            "cmdkey(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?/pass:",
+            "curl(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?(-u|--user)\\s",
+            "driverquery(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?/p\\s",
+            "gpresult(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?/p\\s",
+            "ksetup(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?/(changepassword|setcomputerpassword)\\s",
+            "logman(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?--?u\\s",
+            "net(.exe)?\\s+use\\s+([^\\r\\n]{0,400}\\s+)?/user:",
             "net(.exe)?\\s+user\\s",
-            "psexec(.exe)?[^\\r\\n]{0,400}\\s-p\\s",
-            "sc(.exe)?\\s+config[^\\r\\n]{0,400}\\spassword=",
-            "schtasks(.exe)?\\s[^\\r\\n]{0,400}(/p\\s|/rp\\s)",
-            "sqlcmd(.exe)?[^\\r\\n]{0,400}\\s-p\\s",
-            "(taskkill|tasklist)(.exe)?\\s[^\\r\\n]{0,400}/p\\s",
+            "psexec(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?-p\\s",
+            "sc(.exe)?\\s+config\\s+([^\\r\\n]{0,400}\\s+)?password=",
+            "schtasks(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?(/p\\s|/rp\\s)",
+            "sqlcmd(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?-p\\s",
+            "(taskkill|tasklist)(.exe)?\\s+([^\\r\\n]{0,400}\\s+)?/p\\s",
         };
 
         private SortedSet<string> PatternsWindowsPowershellCredentials { get; } = new SortedSet<string>()
@@ -46,6 +46,9 @@ namespace Smaug.RulesData.File
 
                 switch (extension.ToLower())
                 {
+                    /* Bash */
+                    case ".sh":
+                        break;
                     /* Batch */
                     case ".bat":
                     case ".cmd":
@@ -60,8 +63,12 @@ namespace Smaug.RulesData.File
                         break;
                     /* VBScript */
                     case ".hta":
+                    case ".htm":
+                    case ".html":
+                        break;
                     case ".vbe":
                     case ".vbs":
+                    case ".vbscript":
                     case ".wsc":
                     case ".wsf":
                         break;
@@ -69,7 +76,7 @@ namespace Smaug.RulesData.File
                         break;
                 }
 
-                if (patterns != null && patterns.Count != 0)
+                if (patterns.Count != 0)
                 {
                     return (
                         base.TestRule(path, contents, ref snippets, patterns).Value ||

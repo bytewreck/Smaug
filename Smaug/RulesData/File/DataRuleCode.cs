@@ -85,6 +85,11 @@ namespace Smaug.RulesData.File
             "postgresql://",
         };
 
+        private SortedSet<string> PatternsVisualBasicDatabaseConnection { get; } = new SortedSet<string>()
+        {
+            "New\\s+sqlConnection\\(\"",
+        };
+        
         public override bool? TestRule(string path, byte[] contents, ref List<string> snippets)
         {
             var extension = Path.GetExtension(path);
@@ -97,7 +102,11 @@ namespace Smaug.RulesData.File
                 {
                     /* C / C++ */
                     case ".c":
+                    case ".cc":
                     case ".cpp":
+                    case ".h":
+                    case ".hh":
+                    case ".hpp":
                         patterns.UnionWith(PatternsCppDatabaseConnection);
                         break;
                     /* .NET (C# / ASP) */
@@ -166,11 +175,15 @@ namespace Smaug.RulesData.File
                     case ".rs":
                         patterns.UnionWith(PatternsRustDatabaseConnection);
                         break;
+                    /* Visual Basic */
+                    case ".vb":
+                        patterns.UnionWith(PatternsVisualBasicDatabaseConnection);
+                        break;
                     default:
                         break;
                 }
 
-                if (patterns != null && patterns.Count != 0)
+                if (patterns.Count != 0)
                 {
                     return (
                         base.TestRule(path, contents, ref snippets, patterns).Value ||

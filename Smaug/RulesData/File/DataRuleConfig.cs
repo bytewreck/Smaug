@@ -19,6 +19,7 @@ namespace Smaug.RulesData.File
             ".json",
             ".log",
             ".properties",
+            ".sql",
             ".toml",
             ".txt",
             ".yml",
@@ -32,9 +33,7 @@ namespace Smaug.RulesData.File
 
             if (!string.IsNullOrEmpty(extension))
             {
-                var temp = extension.ToLower();
-
-                if (AcceptExtensions.Contains(temp))
+                if (AcceptExtensions.Contains(extension.ToLower()))
                     return base.TestRule(path, contents, ref snippets);
             }
             
