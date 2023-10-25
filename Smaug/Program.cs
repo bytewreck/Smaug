@@ -40,10 +40,15 @@ namespace Smaug
                 {
                     Printer.Information("Identified {0} total directories", directories.Count);
 
+                    if (ProgramOptions.SearchFiletypes.Count == 0)
+                    {
+                        Printer.Information("No filetypes specified. Restoring default filetypes.");
+                    }
+
                     if (ProgramOptions.SearchKeywords.Count == 0)
                     {
                         Printer.Information("No keywords specified. Restoring default keywords.");
-                        ProgramOptions.SearchKeywords.Add("pass(w|wd|wrd|word)(\\s*=)?");
+                        ProgramOptions.SearchKeywords.Add("pass(word|wrd|wd|w)(\\s*=)?");
                     }
          
                     int index = 0;
@@ -89,10 +94,15 @@ namespace Smaug
                     }
                 }
             }
+            catch (UnauthorizedAccessException e)
+            {
+                if (ProgramOptions.Verbose)
+                    Printer.Debug("Rejecting (directory:noaccess): {0}", path);
+            }
             catch (Exception e)
             {
                 if (ProgramOptions.Verbose)
-                    Printer.Warning(e.Message);
+                    Printer.Warning("Exception for '{0}' - {1}", path, e.ToString());
             }
         }
 
@@ -109,7 +119,8 @@ namespace Smaug
                 {
                     using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
                     {
-                        if (fs.CanRead && !IsMatchMetaRules(path, FileMetaRules) && !IsMatchContentRules(fs, path, FileContentRules))
+                        if (fs.CanRead && !IsMatchMetaRules(path, FileMetaRules) &&
+                            fs.Length != 0 && !IsMatchContentRules(fs, path, FileContentRules))
                         {
                             if (ProgramOptions.Verbose)
                                 Printer.Debug("No match: {0}", path);
@@ -117,10 +128,20 @@ namespace Smaug
                     }
                 }
             }
+            catch (FileFormatException e)
+            {
+                if (ProgramOptions.Verbose)
+                    Printer.Debug("Rejecting (file:corrupt): {0}", path);
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                if (ProgramOptions.Verbose)
+                    Printer.Debug("Rejecting (file:noaccess): {0}", path);
+            }
             catch (Exception e)
             {
                 if (ProgramOptions.Verbose)
-                    Printer.Warning(e.Message);
+                    Printer.Warning("Exception for '{0}' - {1}", path, e.ToString());
             }
 
             return false;
@@ -147,7 +168,7 @@ namespace Smaug
                 if (result.HasValue)
                 {
                     if (result.Value)
-                        Printer.MatchRule(rule.ToString(), path); // Printer.Success("Matched ({0}): {1}", rule, path);
+                        Printer.MatchRule(rule.ToString(), path);
                     else if (ProgramOptions.Verbose)
                         Printer.Debug("Rejecting ({0}): {1}", rule, path);
 
@@ -160,13 +181,11 @@ namespace Smaug
 
         private static List<IDataRule> FileContentRules { get; } = new List<IDataRule>()
         {
-            new DataRuleArchive(),
             new DataRuleCode(),
+            new DataRuleConfig(),
             new DataRuleOfficeExcel(),
             new DataRuleOfficeWord(),
             new DataRuleScript(),
-
-            new DataRuleKeyword(),
         };
 
         static private bool IsMatchContentRules(FileStream fs, string path, List<IDataRule> rules)
@@ -185,7 +204,7 @@ namespace Smaug
                 if (result.HasValue)
                 {
                     if (result.Value)
-                        Printer.MatchRule(rule.ToString(), path, snippets); //Printer.Success("Matched ({0}): {1}{2}", rule, path, string.Join("\n\t", snippets));
+                        Printer.MatchRule(rule.ToString(), path, snippets);
                     else if (ProgramOptions.Verbose)
                         Printer.Debug("Rejecting ({0}): {1}", rule, path);
 

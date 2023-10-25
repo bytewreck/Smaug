@@ -69,6 +69,7 @@ namespace Smaug.RulesMeta.File
 
         private HashSet<string> RejectExtensions { get; } = new HashSet<string>()
         {
+            ".7z",
             ".aac",
             ".adml",
             ".admx",
@@ -78,14 +79,19 @@ namespace Smaug.RulesMeta.File
             ".avchd",
             ".avi",
             ".bmp",
+            ".bzip2",
+            ".cache",
             ".cr2",
             ".css",
             ".dib",
+            ".dll",
             ".eps",
             ".etl",
+            ".exe",
             ".flac",
             ".flv",
             ".gif",
+            ".gzip",
             ".heic",
             ".heif",
             ".ind",
@@ -117,31 +123,39 @@ namespace Smaug.RulesMeta.File
             ".mpeg",
             ".mpg",
             ".mpv",
+            ".msi",
+            ".mui",
             ".nrw",
             ".nse",
             ".oga",
             ".ogg",
             ".otf",
             ".pcm",
+            ".pdb",
             ".pdf",
             ".png",
             ".psd",
             ".pyc",
             ".pyi",
+            ".rar",
             ".qt",
             ".svg",
             ".svgz",
             ".swf",
+            ".tar",
             ".tif",
             ".tiff",
             ".ttf",
             ".wav",
             ".webm",
             ".webp",
+            ".wim",
             ".wmv",
             ".xcf",
+            ".xr",
             ".xsd",
             ".xsl",
+            ".zip",
         };
 
         public bool? TestRule(string path)
@@ -163,7 +177,7 @@ namespace Smaug.RulesMeta.File
 
         public override string ToString()
         {
-            return "extension";
+            return "meta:extension";
         }
     }
 }

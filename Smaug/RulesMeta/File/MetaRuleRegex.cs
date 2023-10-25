@@ -36,7 +36,7 @@ namespace Smaug.RulesMeta.File
 
         public override string ToString()
         {
-            return "regex";
+            return "meta:regex";
         }
     }
 }

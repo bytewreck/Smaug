@@ -38,13 +38,13 @@ namespace Smaug.RulesData.File
 
         public override bool? TestRule(string path, byte[] contents, ref List<string> snippets)
         {
-            var temp = Path.GetExtension(path);
+            var extension = Path.GetExtension(path);
 
-            if (temp != null)
+            if (!string.IsNullOrEmpty(extension))
             {
                 SortedSet<string> patterns = new SortedSet<string>();
 
-                switch (temp.ToLower())
+                switch (extension.ToLower())
                 {
                     /* Batch */
                     case ".bat":
@@ -71,10 +71,10 @@ namespace Smaug.RulesData.File
 
                 if (patterns != null && patterns.Count != 0)
                 {
-                    var result = base.TestRule(path, contents, ref snippets, patterns);
-
-                    if (result.HasValue && result.Value)
-                        return true;
+                    return (
+                        base.TestRule(path, contents, ref snippets, patterns).Value ||
+                        base.TestRule(path, contents, ref snippets).Value
+                    );
                 }
             }
 
@@ -83,7 +83,7 @@ namespace Smaug.RulesData.File
 
         public override string ToString()
         {
-            return "code";
+            return "data:script";
         }
     }
 }

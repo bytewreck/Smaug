@@ -39,7 +39,7 @@ namespace Smaug.RulesMeta.File
 
         public override string ToString()
         {
-            return "name suffix";
+            return "meta:suffix";
         }
     }
 }

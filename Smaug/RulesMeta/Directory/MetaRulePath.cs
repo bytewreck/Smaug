@@ -142,7 +142,7 @@ namespace Smaug.RulesMeta.Directory
 
         public override string ToString()
         {
-            return "path";
+            return "meta:path";
         }
     }
 }

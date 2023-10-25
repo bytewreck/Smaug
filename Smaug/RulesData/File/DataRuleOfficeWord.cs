@@ -13,9 +13,9 @@ namespace Smaug.RulesData.File
     {
         public override bool? TestRule(string path, byte[] contents, ref List<string> snippets)
         {
-            var temp = Path.GetExtension(path);
+            var extension = Path.GetExtension(path);
 
-            if (temp != null && temp.ToLower() == ".docx")
+            if (!string.IsNullOrEmpty(extension) && extension.ToLower() == ".docx")
                 return base.TestRuleString(path, DocxToPlaintext(contents), ref snippets);
 
             return null;
@@ -23,7 +23,7 @@ namespace Smaug.RulesData.File
 
         public override string ToString()
         {
-            return "word";
+            return "data:word";
         }
 
         private string DocxToPlaintext(byte[] contents)

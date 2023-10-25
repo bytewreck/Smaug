@@ -35,7 +35,7 @@ namespace Smaug.RulesMeta.File
 
         public override string ToString()
         {
-            return "name prefix";
+            return "meta:prefix";
         }
     }
 }

@@ -24,6 +24,7 @@ namespace Smaug
 #endif
 
         /* Search keywords */
+        public static SortedSet<string> SearchFiletypes { get; } = new SortedSet<string>();
         public static SortedSet<string> SearchKeywords { get; } = new SortedSet<string>();
 
         /* Performance criteria */
@@ -78,6 +79,11 @@ namespace Smaug
                     "d|directory=",
                     "Include directory in search",
                         x => SearchDirectories.Add(x)
+                },
+                {
+                    "f|filetype=",
+                    "Include filetype in search",
+                        x => SearchFiletypes.Add(x)
                 },
                 {
                     "k|keyword=",

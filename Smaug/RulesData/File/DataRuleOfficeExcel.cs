@@ -13,9 +13,9 @@ namespace Smaug.RulesData.File
     {
         public override bool? TestRule(string path, byte[] contents, ref List<string> snippets)
         {
-            var temp = Path.GetExtension(path);
+            var extension = Path.GetExtension(path);
 
-            if (temp != null && temp.ToLower() == ".xlsx")
+            if (!string.IsNullOrEmpty(extension) && extension.ToLower() == ".xlsx")
                 return base.TestRuleString(path, XlsxToPlaintext(contents), ref snippets);
 
             return null;
@@ -23,7 +23,7 @@ namespace Smaug.RulesData.File
 
         public override string ToString()
         {
-            return "excel";
+            return "data:excel";
         }
 
         private string XlsxToPlaintext(byte[] contents)
