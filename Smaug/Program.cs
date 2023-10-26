@@ -161,6 +161,8 @@ namespace Smaug
         {
             new MetaRuleName(),
             new MetaRuleExtension(),
+            new MetaRuleNamePrefix(),
+            new MetaRuleNameSuffix(),
             new MetaRuleRegex(),
         };
 

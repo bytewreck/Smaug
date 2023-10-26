@@ -27,8 +27,11 @@ namespace Smaug.RulesData
 
         protected bool? TestRuleString(string path, string contents, ref List<string> snippets, SortedSet<string> keywords)
         {
-            foreach (var keyword in keywords)
-                GetRegexRanges(contents, keyword, ref snippets);
+            if (!string.IsNullOrEmpty(contents))
+            {
+                foreach (var keyword in keywords)
+                    GetRegexRanges(contents, keyword, ref snippets);
+            }
 
             return snippets.Count != 0;
         }
@@ -53,15 +56,10 @@ namespace Smaug.RulesData
                     /* Restrict left margins to newlines */
                     if (m1 != 0)
                     {
-                        var cr = snippet.LastIndexOf('\r', m1);
-                        var lf = snippet.LastIndexOf('\n', m1);
+                        var i3 = snippet.LastIndexOfAny(new char[] { '\0', '\r', '\n' }, m1);
 
-                        if (cr != -1 && lf != -1)
-                            snippet = snippet.Substring(Math.Max(cr, lf) + 1);
-                        else if (cr != -1 && lf == -1)
-                            snippet = snippet.Substring(cr);
-                        else if (cr == -1 && lf != -1)
-                            snippet = snippet.Substring(lf);
+                        if (i3 != -1)
+                            snippet = snippet.Substring(i3 + 1);
                         else if (i1 != 0)
                             snippet = "..." + snippet;
                     }
@@ -69,15 +67,10 @@ namespace Smaug.RulesData
                     /* Restrict right margins to newlines */
                     if (m2 != 0)
                     {
-                        var cr = snippet.IndexOf("\r", snippet.Length - m2);
-                        var lf = snippet.IndexOf("\n", snippet.Length - m2);
+                        var i4 = snippet.IndexOfAny(new char[] { '\0', '\r', '\n' }, snippet.Length - m2);
 
-                        if (cr != -1 && lf != -1)
-                            snippet = snippet.Remove(Math.Min(cr, lf));
-                        else if (cr != -1 && lf == -1)
-                            snippet = snippet.Remove(cr);
-                        else if (cr == -1 && lf != -1)
-                            snippet = snippet.Remove(lf);
+                        if (i4 != -1)
+                            snippet = snippet.Remove(i4);
                         else if (i2 != contents.Length)
                             snippet = snippet + "...";
                     }

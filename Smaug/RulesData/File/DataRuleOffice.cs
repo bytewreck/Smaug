@@ -19,57 +19,68 @@ namespace Smaug.RulesData.File
             {
                 switch (extension.ToLower())
                 {
+                    /* Microsoft Word */
                     case ".docx": // Word document
-                    case ".docm": // Word macro-enabled document; same as docx, but may contain macros and scripts
+                    case ".docm": // Word macro-enabled document
                     case ".dotx": // Word template
-                    case ".dotm": // Word macro-enabled template; same as dotx, but may contain macros and scripts
-                        return base.TestRuleString(path, WordToPlaintext(contents), ref snippets);
+                    case ".dotm": // Word macro-enabled template
+                        return base.TestRuleString(path, WordXmlToPlaintext(contents), ref snippets);
 
-                    case ".docb": // Word binary document introduced in Microsoft Office 2007
-                    case ".wll": // Word add-in
-                    case ".wwl": // Word add-in
-                        break; // Haven't analyzed these formats yet (should be identical to above / ooxml)
-                         
+                    case ".docb": // Word binary document
+                        break; // Not yet analyzed
+
                     case ".doc": // Legacy Word document; Microsoft Office refers to them as "Microsoft Word 97 – 2003 Document"
                     case ".dot": // Legacy Word templates; officially designated "Microsoft Word 97 – 2003 Template"
-                    case ".wbk": // Legacy Word document backup; referred as "Microsoft Word Backup Document"
-                        break; // Haven't analyzed these formats yet (should be legacy formats)
+                        return base.TestRule(path, contents, ref snippets); // Strings appear uniformly distributed - less inclusive parsing may not be necessary
 
+                    case ".wbk": // Legacy Word document backup; referred as "Microsoft Word Backup Document"
+                    case ".wll": // Word add-in
+                    case ".wwl": // Word add-in
+                        return false;
+
+                    /* Microsoft Excel */
                     case ".xlsx": // Excel workbook
-                    case ".xlsm": // Excel macro-enabled workbook; same as xlsx but may contain macros and scripts
+                    case ".xlsm": // Excel macro-enabled workbook
                     case ".xltx": // Excel template
-                    case ".xltm": // Excel macro-enabled template; same as xltx but may contain macros and scripts
-                        return base.TestRuleString(path, ExcelToPlaintext(contents), ref snippets);
+                    case ".xltm": // Excel macro-enabled template
+                    case ".xlam": // Excel macro-enabled add-in
+                        return base.TestRuleString(path, ExcelXmlToPlaintext(contents), ref snippets);
+
+                    case ".xlsb": // Excel binary worksheet (BIFF12)
+                        return base.TestRuleString(path, ExcelBiff12ToPlaintext(contents), ref snippets);
 
                     case ".xls": // Legacy Excel worksheets; officially designated "Microsoft Excel 97-2003 Worksheet"
                     case ".xlt": // Legacy Excel templates; officially designated "Microsoft Excel 97-2003 Template"
                     case ".xlm": // Legacy Excel macro
-                        break; // Haven't analyzed these formats yet (should be legacy formats)
-
-                    case ".xlsb": // Excel binary worksheet (BIFF12)
                     case ".xla": // Excel add-in that can contain macros
-                    case ".xlam": // Excel macro-enabled add-in
-                    case ".xll": // Excel XLL add-in; a form of DLL-based add-in[1]
-                    case ".xlw": // Excel work space; previously known as "workbook"
-                        break; // Haven't analyzed these formats yet (other formats)
+                        return base.TestRuleString(path, ExcelBiff8ToPlaintext(contents), ref snippets);
 
+                    case ".xll": // Excel add-in
+                    case ".xlw": // Excel work space; previously known as "workbook"
+                        return false;
+
+                    /* Microsoft PowerPoint */
                     case ".pptx": // PowerPoint presentation
                     case ".pptm": // PowerPoint macro-enabled presentation
-                    case ".potx": // PowerPoint template
-                    case ".potm": // PowerPoint macro-enabled template
-                    case ".ppam": // PowerPoint add-in
                     case ".ppsx": // PowerPoint slideshow
                     case ".ppsm": // PowerPoint macro-enabled slideshow
-                    case ".sldx": // PowerPoint slide
-                    case ".sldm": // PowerPoint macro-enabled slide
-                    case ".pa": // PowerPoint add-in
-                        return false; // Not coded yet (should be ooxml)
+                    case ".potx": // PowerPoint template
+                    case ".potm": // PowerPoint macro-enabled template
+                        return base.TestRuleString(path, PowerPointXmlToPlaintext(contents), ref snippets);
 
                     case ".ppt": // Legacy PowerPoint presentation
-                    case ".pot": // Legacy PowerPoint template
                     case ".pps": // Legacy PowerPoint slideshow
+                    case ".pot": // Legacy PowerPoint template
+                        return base.TestRule(path, contents, ref snippets); // Strings appear uniformly distributed - less inclusive parsing may not be necessary
+
+                    case ".sldx": // PowerPoint slide
+                    case ".sldm": // PowerPoint macro-enabled slide
+                        return false;
+
+                    case ".pa": // PowerPoint add-in
                     case ".ppa": // PowerPoint (2007?) add-in
-                        break; // Haven't analyzed these formats yet (should be legacy formats)
+                    case ".ppam": // PowerPoint add-in
+                        return false; // Not coded yet (should be ooxml)
 
                     case ".one": // a OneNote export file
                         return false; // Not coded yet (?)
@@ -101,7 +112,7 @@ namespace Smaug.RulesData.File
             return "data:office";
         }
 
-        private string WordToPlaintext(byte[] contents)
+        private string WordXmlToPlaintext(byte[] contents)
         {
             var sb = new StringBuilder();
 
@@ -109,26 +120,25 @@ namespace Smaug.RulesData.File
             {
                 using (var package = Package.Open(content_stream, FileMode.Open, FileAccess.Read))
                 {
-                    var document_relationship = package.GetRelationshipsByType("http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument").FirstOrDefault();
+                    var document_ct = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml";
 
-                    if (document_relationship != null)
+                    foreach (var part in package.GetParts().Where(p => p.ContentType.Equals(document_ct)))
                     {
-                        var document_part = package.GetPart(PackUriHelper.ResolvePartUri(new Uri("/", UriKind.Relative), document_relationship.TargetUri));
-                        var document_data = XDocument.Load(XmlReader.Create(document_part.GetStream()));
+                        var data = XDocument.Load(XmlReader.Create(part.GetStream()));
 
-                        if (document_data != null)
+                        if (data != null)
                         {
-                            XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+                            XNamespace n = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
-                            var paragraphs = document_data.Root
-                                .Element(w + "body")
-                                .Descendants(w + "p");
+                            var paragraphs = data.Root
+                                .Elements(n + "body")
+                                .Descendants(n + "p");
 
                             foreach (var paragraph in paragraphs)
                             {
                                 sb.AppendLine(paragraph
-                                    .Elements(w + "r")
-                                    .Elements(w + "t")
+                                    .Elements(n + "r")
+                                    .Elements(n + "t")
                                     .Aggregate(new StringBuilder(), (s, e) => s.Append(e.Value), s => s.ToString()));
                             }
                         }
@@ -139,7 +149,7 @@ namespace Smaug.RulesData.File
             return sb.ToString();
         }
 
-        private string ExcelToPlaintext(byte[] contents)
+        private string ExcelXmlToPlaintext(byte[] contents)
         {
             var sb = new StringBuilder();
 
@@ -147,18 +157,195 @@ namespace Smaug.RulesData.File
             {
                 using (var package = Package.Open(content_stream, FileMode.Open, FileAccess.Read))
                 {
-                    var string_part = package.GetPart(new Uri("/xl/sharedStrings.xml", UriKind.Relative));
-                    var string_data = XDocument.Load(XmlReader.Create(string_part.GetStream()));
+                    var strings_ct = "application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml";
 
-                    if (string_data != null)
+                    foreach (var part in package.GetParts().Where(p => p.ContentType.Equals(strings_ct)))
                     {
-                        XNamespace w = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+                        var data = XDocument.Load(XmlReader.Create(part.GetStream()));
 
-                        foreach (var str in string_data.Root.Elements(w + "si"))
+                        if (data != null)
                         {
-                            sb.AppendLine(str
-                                .Elements(w + "t")
-                                .Aggregate(new StringBuilder(), (s, e) => s.Append(e.Value), s => s.ToString()));
+                            XNamespace n = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+
+                            foreach (var str in data.Root.Elements(n + "si"))
+                            {
+                                sb.AppendLine(str
+                                    .Elements(n + "t")
+                                    .Aggregate(new StringBuilder(), (s, e) => s.Append(e.Value), s => s.ToString()));
+                            }
+                        }
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private string PowerPointXmlToPlaintext(byte[] contents)
+        {
+            var sb = new StringBuilder();
+
+            using (var content_stream = new MemoryStream(contents))
+            {
+                using (var package = Package.Open(content_stream, FileMode.Open, FileAccess.Read))
+                {
+                    var slide_ct = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml";
+
+                    foreach (var part in package.GetParts().Where(s => s.ContentType.Equals(slide_ct)))
+                    {
+                        var data = XDocument.Load(XmlReader.Create(part.GetStream()));
+
+                        if (data != null)
+                        {
+                            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+                            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
+
+                            var paragraphs = data.Root
+                                .Elements(p + "cSld")
+                                .Descendants(a + "p");
+
+                            foreach (var paragraph in paragraphs)
+                            {
+                                sb.AppendLine(paragraph
+                                    .Elements(a + "r")
+                                    .Elements(a + "t")
+                                    .Aggregate(new StringBuilder(), (s, e) => s.Append(e.Value), s => s.ToString()));
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private string ExcelBiff12ToPlaintext(byte[] contents)
+        {
+            var sb = new StringBuilder();
+
+            using (var content_stream = new MemoryStream(contents))
+            {
+                using (var package = Package.Open(content_stream, FileMode.Open, FileAccess.Read))
+                {
+                    var string_part = package.GetPart(new Uri("/xl/sharedStrings.bin", UriKind.Relative));
+
+                    using (var br = new BinaryReader(string_part.GetStream()))
+                    {
+                        if (br.ReadUInt16() == 0x019f /* SST */)
+                        {
+                            var record_length = br.ReadByte();
+                            var count_strings = br.ReadUInt32();
+                            var count_uniques = br.ReadUInt32();
+
+                            for (var i = 0; i < count_strings; i++)
+                            {
+                                if (br.ReadByte() == 0x13 /* SI */)
+                                {
+                                    var length = br.ReadByte(); // length of the SI record
+                                    var flags = br.ReadByte();
+
+                                    var str_cchCharacters = br.ReadUInt32();
+                                    var str_rgchData = br.ReadBytes((int)(str_cchCharacters * 2));
+                                    sb.AppendLine(Encoding.Unicode.GetString(str_rgchData));
+
+                                    if ((flags & 1) != 0)
+                                    {
+                                        for (uint j = 0, dwSizeStrRun = br.ReadUInt32(); j < dwSizeStrRun; j++)
+                                        {
+                                            var ich = br.ReadUInt16();
+                                            var ifnt = br.ReadUInt16();
+                                        }
+                                    }
+
+                                    if ((flags & 2) != 0)
+                                    {
+                                        var phoneticStr_cchCharacters = br.ReadUInt32();
+                                        var phoneticStr_rgchData = br.ReadBytes((int)(phoneticStr_cchCharacters * 2));
+
+                                        for (uint j = 0, dwPhoneticRun = br.ReadUInt32(); j < dwPhoneticRun; j++)
+                                        {
+                                            var ichFirst = br.ReadUInt16();
+                                            var ichMom = br.ReadUInt16();
+                                            var cchMom = br.ReadUInt16();
+                                            var ifnt = br.ReadUInt16();
+                                            br.ReadUInt16(); // flags (character set type / alignment)
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (br.ReadUInt16() != 0x01a0 /* SST_END */)
+                            {
+                                if (ProgramOptions.Verbose)
+                                    Printer.Warning("Excel BIFF12 parser did not reach end of file.");
+                            }
+                        }
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private string ExcelBiff8ToPlaintext(byte[] contents)
+        {
+            var sb = new StringBuilder();
+
+            using (var content_stream = new MemoryStream(contents))
+            {
+                using (var br = new BinaryReader(content_stream))
+                {
+                    var cfb_header = br.ReadBytes(512);
+
+                    while (br.BaseStream.Position < br.BaseStream.Length)
+                    {
+                        var biff_record_type = br.ReadUInt16();
+
+                        if (biff_record_type == 0)
+                            break;
+
+                        var biff_record_size = br.ReadUInt16();
+                        var biff_record_data = br.ReadBytes(biff_record_size);
+
+                        if (biff_record_type == 0x00fc /* SST */)
+                        {
+                            using (var record_stream = new MemoryStream(biff_record_data))
+                            {
+                                using (var record_reader = new BinaryReader(record_stream))
+                                {
+                                    var count_strings = record_reader.ReadInt32();
+                                    var count_uniques = record_reader.ReadInt32();
+
+                                    for (var i = 0; i < count_strings; i++)
+                                    {
+                                        // Instances of 'XLUnicodeRichExtendedString'
+                                        var cch = record_reader.ReadUInt16();
+                                        var flags = record_reader.ReadByte();
+                                        var cRun = (flags & 8) != 0 ? record_reader.ReadUInt16() : 0;
+                                        var cbExtRst = (flags & 4) != 0 ? record_reader.ReadInt32() : 0;
+
+                                        var rgb = string.Empty;
+
+                                        if ((flags & 1) != 0)
+                                            rgb = Encoding.Unicode.GetString(record_reader.ReadBytes(cch * 2));
+                                        else
+                                            rgb = Encoding.UTF8.GetString(record_reader.ReadBytes(cch));
+
+                                        if (!string.IsNullOrEmpty(rgb))
+                                            sb.AppendLine(rgb);
+
+                                        for (var j = 0; j < cRun; j++)
+                                        {
+                                            var ich = record_reader.ReadUInt16();
+                                            var ifnt = record_reader.ReadUInt16();
+                                        }
+
+                                        if (cbExtRst != 0)
+                                            record_reader.ReadBytes(cbExtRst);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
