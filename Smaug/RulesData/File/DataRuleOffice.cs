@@ -66,6 +66,8 @@ namespace Smaug.RulesData.File
                     case ".ppsm": // PowerPoint macro-enabled slideshow
                     case ".potx": // PowerPoint template
                     case ".potm": // PowerPoint macro-enabled template
+                    case ".sldx": // PowerPoint slide
+                    case ".sldm": // PowerPoint macro-enabled slide
                         return base.TestRuleString(path, PowerPointXmlToPlaintext(contents), ref snippets);
 
                     case ".ppt": // Legacy PowerPoint presentation
@@ -73,14 +75,10 @@ namespace Smaug.RulesData.File
                     case ".pot": // Legacy PowerPoint template
                         return base.TestRule(path, contents, ref snippets); // Strings appear uniformly distributed - less inclusive parsing may not be necessary
 
-                    case ".sldx": // PowerPoint slide
-                    case ".sldm": // PowerPoint macro-enabled slide
-                        return false;
-
                     case ".pa": // PowerPoint add-in
-                    case ".ppa": // PowerPoint (2007?) add-in
+                    case ".ppa": // PowerPoint add-in
                     case ".ppam": // PowerPoint add-in
-                        return false; // Not coded yet (should be ooxml)
+                        return false;
 
                     case ".one": // a OneNote export file
                         return false; // Not coded yet (?)
