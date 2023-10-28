@@ -35,6 +35,8 @@ namespace Smaug.RulesMeta.File
             ".git-credentials",                 // Git
             ".gitconfig",                       // Git
             "credentials.xml",                  // Jenkins
+            "master.key",                       // Jenkins
+            "hudson.util.secret",               // Jenkins
             "jenkins.plugins.publish_over_ssh.bapsshpublisherplugin.xml",
             "localsettings.php",                // MediaWiki
             "mobaxterm.ini",                    // MobaXterm

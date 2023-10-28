@@ -66,6 +66,8 @@ namespace Smaug.RulesData.File
                     case ".ppsm": // PowerPoint macro-enabled slideshow
                     case ".potx": // PowerPoint template
                     case ".potm": // PowerPoint macro-enabled template
+                    case ".sldx": // PowerPoint slide
+                    case ".sldm": // PowerPoint macro-enabled slide
                         return base.TestRuleString(path, PowerPointXmlToPlaintext(contents), ref snippets);
 
                     case ".ppt": // Legacy PowerPoint presentation
@@ -73,31 +75,35 @@ namespace Smaug.RulesData.File
                     case ".pot": // Legacy PowerPoint template
                         return base.TestRule(path, contents, ref snippets); // Strings appear uniformly distributed - less inclusive parsing may not be necessary
 
-                    case ".sldx": // PowerPoint slide
-                    case ".sldm": // PowerPoint macro-enabled slide
+                    case ".pa": // PowerPoint add-in
+                    case ".ppa": // PowerPoint add-in
+                    case ".ppam": // PowerPoint add-in
                         return false;
 
-                    case ".pa": // PowerPoint add-in
-                    case ".ppa": // PowerPoint (2007?) add-in
-                    case ".ppam": // PowerPoint add-in
-                        return false; // Not coded yet (should be ooxml)
-
-                    case ".one": // a OneNote export file
-                        return false; // Not coded yet (?)
-
-                    case ".pub": // a Microsoft Publisher publication
-                        return false; // Not coded yet (?)
-
-                    case ".xps": // a XML-based document format used for printing (on Windows Vista and later) and preserving documents.
-                        return false; // Not coded yet (?)
-
-                        /* Email files (Outlook) */
+                    /* Microsoft Outlook */
+                    case ".eml":
                     case ".msg":
                     case ".pst":
                     case ".edb":
                     case ".ost":
-                    case ".eml":
                         return false; // Not coded yet (?)
+
+                    /* Microsoft OneNote */
+                    case ".one": // a OneNote export file
+                    case ".onetoc2": // a OneNote export file
+                        return base.TestRuleString(path, OneNoteToPlaintext(contents), ref snippets);
+
+                    /* Microsoft Publisher */
+                    // The format is undocumented, so we perform ASCII and UTF-16 string searches.
+                    // The UTF-16 search is also performed with an offset of 1 to account for both evenly and oddly aligned unicode characters
+                    case ".pub": // Publisher publication
+                        return base.TestRule(path, contents, ref snippets) | 
+                            base.TestRuleString(path, Encoding.Unicode.GetString(contents), ref snippets) |
+                            base.TestRuleString(path, Encoding.Unicode.GetString(contents.Skip(1).ToArray()), ref snippets);
+
+                    /* XPS */
+                    case ".xps": // XML-based document format used for printing and preserving documents.
+                        return base.TestRuleString(path, XpsXmlToPlaintext(contents), ref snippets);
 
                     default:
                         break;
@@ -110,6 +116,33 @@ namespace Smaug.RulesData.File
         public override string ToString()
         {
             return "data:office";
+        }
+
+        private string OneNoteToPlaintext(byte[] contents)
+        {
+            var sb = new StringBuilder();
+
+            using (var content_stream = new MemoryStream(contents))
+            {
+                using (var br = new BinaryReader(content_stream))
+                {
+                    var guid = new Guid(br.ReadBytes(16)).ToString().ToLower();
+                    var header = br.ReadBytes(1024 - 16);
+
+                    if (guid == "7b5c52e4-d88c-4da7-aeb1-5378d02996d3")
+                    {
+                        // .one
+                    }
+                    else if (guid == "43ff2fa1-efd9-4c76-9ee2-10ea5722765f")
+                    {
+                        // .onetoc2
+                    }
+                    else if (ProgramOptions.Verbose)
+                        Console.WriteLine(guid);
+                }
+            }
+
+            return sb.ToString();
         }
 
         private string WordXmlToPlaintext(byte[] contents)
@@ -214,6 +247,40 @@ namespace Smaug.RulesData.File
                         }
                     }
 
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private string XpsXmlToPlaintext(byte[] contents)
+        {
+            var sb = new StringBuilder();
+
+            using (var content_stream = new MemoryStream(contents))
+            {
+                using (var package = Package.Open(content_stream, FileMode.Open, FileAccess.Read))
+                {
+                    var page_ct = "application/vnd.ms-package.xps-fixedpage+xml";
+
+                    foreach (var part in package.GetParts().Where(p => p.ContentType.Equals(page_ct)))
+                    {
+                        var data = XDocument.Load(XmlReader.Create(part.GetStream()));
+
+                        if (data != null)
+                        {
+                            XNamespace n = "http://schemas.microsoft.com/xps/2005/06";
+
+                            foreach (var group in data.Root
+                                .Descendants(n + "Glyphs")
+                                .GroupBy(g => g.Attribute("OriginY").Value))
+                            {
+                                sb.AppendLine(group
+                                    .Attributes("UnicodeString")
+                                    .Aggregate(new StringBuilder(), (s, e) => s.Append(e.Value), s => s.ToString()));
+                            }
+                        }
+                    }
                 }
             }
 
