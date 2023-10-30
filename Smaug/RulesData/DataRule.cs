@@ -12,7 +12,7 @@ namespace Smaug.RulesData
     {
         public virtual bool? TestRule(string path, byte[] contents, ref List<string> snippets)
         {
-            return TestRuleString(path, Encoding.ASCII.GetString(contents), ref snippets, ProgramOptions.SearchKeywords);
+            return TestRuleString(path, Encoding.ASCII.GetString(contents), ref snippets, ProgramOptions.SearchPatterns);
         }
 
         protected bool? TestRule(string path, byte[] contents, ref List<string> snippets, SortedSet<string> keywords)
@@ -22,7 +22,7 @@ namespace Smaug.RulesData
 
         protected bool? TestRuleString(string path, string contents, ref List<string> snippets)
         {
-            return TestRuleString(path, contents, ref snippets, ProgramOptions.SearchKeywords);
+            return TestRuleString(path, contents, ref snippets, ProgramOptions.SearchPatterns);
         }
 
         protected bool? TestRuleString(string path, string contents, ref List<string> snippets, SortedSet<string> keywords)

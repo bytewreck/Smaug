@@ -24,7 +24,7 @@ namespace Smaug
 #endif
 
         /* Search keywords */
-        public static SortedSet<string> SearchKeywords { get; } = new SortedSet<string>();
+        public static SortedSet<string> SearchPatterns { get; } = new SortedSet<string>();
 
         /* Performance criteria */
         public static int ThreadCount { get; private set; } = 10;
@@ -82,7 +82,7 @@ namespace Smaug
                 {
                     "k|keyword=",
                     "Include keyword in search (supports regex)",
-                        x => SearchKeywords.Add(x)
+                        x => SearchPatterns.Add(x)
                 },
                 {
                     "m|maxsize=",

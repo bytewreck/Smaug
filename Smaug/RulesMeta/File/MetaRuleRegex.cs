@@ -27,7 +27,7 @@ namespace Smaug.RulesMeta.File
 
                 if (RejectNames.Any(s => Regex.IsMatch(temp, s)))
                     return false;
-                else if (AcceptNames.Any(s => Regex.IsMatch(temp, s)) || ProgramOptions.SearchKeywords.Any(k => Regex.IsMatch(temp, k)))
+                else if (AcceptNames.Any(s => Regex.IsMatch(temp, s)) || ProgramOptions.SearchPatterns.Any(k => Regex.IsMatch(temp, k)))
                     return true;
             }
 

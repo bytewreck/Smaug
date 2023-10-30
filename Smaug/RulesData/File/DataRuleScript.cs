@@ -78,10 +78,8 @@ namespace Smaug.RulesData.File
 
                 if (patterns.Count != 0)
                 {
-                    return (
-                        base.TestRule(path, contents, ref snippets, patterns).Value ||
-                        base.TestRule(path, contents, ref snippets).Value
-                    );
+                    patterns.UnionWith(ProgramOptions.SearchPatterns);
+                    return base.TestRule(path, contents, ref snippets, patterns);
                 }
             }
 
