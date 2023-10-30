@@ -80,18 +80,24 @@ namespace Smaug.RulesData.File
                     case ".ppam": // PowerPoint add-in
                         return false;
 
+                    /* Microsoft OneNote */
+                    case ".one": // OneNote export file
+                    case ".onetoc2": // OneNote export file
+                        return base.TestRule(path, contents, ref snippets);
+
                     /* Microsoft Outlook */
                     case ".eml":
-                    case ".msg":
-                    case ".pst":
-                    case ".edb":
-                    case ".ost":
-                        return false; // Not coded yet (?)
+                        return base.TestRule(path, contents, ref snippets);
 
-                    /* Microsoft OneNote */
-                    case ".one": // a OneNote export file
-                    case ".onetoc2": // a OneNote export file
-                        return base.TestRuleString(path, OneNoteToPlaintext(contents), ref snippets);
+                    case ".oft": // The format supports both ASCII and UTF-16 versions
+                    case ".msg": // The format supports both ASCII and UTF-16 versions
+                        return base.TestRule(path, contents, ref snippets) |
+                            base.TestRuleString(path, Encoding.Unicode.GetString(contents), ref snippets) |
+                            base.TestRuleString(path, Encoding.Unicode.GetString(contents.Skip(1).ToArray()), ref snippets);
+
+                    case ".ost":
+                    case ".pst":
+                        return false; // Not yet analyzed
 
                     /* Microsoft Publisher */
                     // The format is undocumented, so we perform ASCII and UTF-16 string searches.
@@ -116,33 +122,6 @@ namespace Smaug.RulesData.File
         public override string ToString()
         {
             return "data:office";
-        }
-
-        private string OneNoteToPlaintext(byte[] contents)
-        {
-            var sb = new StringBuilder();
-
-            using (var content_stream = new MemoryStream(contents))
-            {
-                using (var br = new BinaryReader(content_stream))
-                {
-                    var guid = new Guid(br.ReadBytes(16)).ToString().ToLower();
-                    var header = br.ReadBytes(1024 - 16);
-
-                    if (guid == "7b5c52e4-d88c-4da7-aeb1-5378d02996d3")
-                    {
-                        // .one
-                    }
-                    else if (guid == "43ff2fa1-efd9-4c76-9ee2-10ea5722765f")
-                    {
-                        // .onetoc2
-                    }
-                    else if (ProgramOptions.Verbose)
-                        Console.WriteLine(guid);
-                }
-            }
-
-            return sb.ToString();
         }
 
         private string WordXmlToPlaintext(byte[] contents)

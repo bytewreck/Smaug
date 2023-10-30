@@ -36,6 +36,14 @@ namespace Smaug.RulesData
             return snippets.Count != 0;
         }
 
+        private static char[] BoundaryCharacters { get; } = new char[]
+        {
+            (char)0x00, (char)0x01, (char)0x02, (char)0x03, (char)0x04, (char)0x05, (char)0x06, (char)0x07,
+            (char)0x08, (char)0x09, (char)0x0a, (char)0x0b, (char)0x0c, (char)0x0d, (char)0x0e, (char)0x0f,
+            (char)0x10, (char)0x11, (char)0x12, (char)0x13, (char)0x14, (char)0x15, (char)0x16, (char)0x17,
+            (char)0x18, (char)0x19, (char)0x1a, (char)0x1b, (char)0x1c, (char)0x1d, (char)0x1e, (char)0x1f,
+        };
+
         protected void GetRegexRanges(string contents, string pattern, ref List<string> snippets)
         {
             foreach (Match m in Regex.Matches(contents, pattern, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase))
@@ -56,7 +64,7 @@ namespace Smaug.RulesData
                     /* Restrict left margins to newlines */
                     if (m1 != 0)
                     {
-                        var i3 = snippet.LastIndexOfAny(new char[] { '\0', '\r', '\n' }, m1);
+                        var i3 = snippet.LastIndexOfAny(BoundaryCharacters, m1);
 
                         if (i3 != -1)
                             snippet = snippet.Substring(i3 + 1);
@@ -67,7 +75,7 @@ namespace Smaug.RulesData
                     /* Restrict right margins to newlines */
                     if (m2 != 0)
                     {
-                        var i4 = snippet.IndexOfAny(new char[] { '\0', '\r', '\n' }, snippet.Length - m2);
+                        var i4 = snippet.IndexOfAny(BoundaryCharacters, snippet.Length - m2);
 
                         if (i4 != -1)
                             snippet = snippet.Remove(i4);
