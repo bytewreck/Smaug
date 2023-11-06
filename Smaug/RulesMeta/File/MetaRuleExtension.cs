@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Smaug.RulesMeta.File
 {
-    class MetaRuleExtension : IMetaRule
+    class MetaRuleExtension : MetaRule
     {
         private HashSet<string> AcceptExtensions { get; } = new HashSet<string>()
         {
@@ -158,7 +158,7 @@ namespace Smaug.RulesMeta.File
             ".zip",
         };
 
-        public bool? TestRule(string path)
+        public override bool? TestRule(string path)
         {
             var extension = Path.GetExtension(path);
 

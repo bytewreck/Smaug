@@ -9,32 +9,41 @@ namespace Smaug
 {
     class ProgramOptions
     {
-        /* File criteria */
         public static DateTime AfterDate { get; private set; } = DateTime.MinValue;
         public static DateTime BeforeDate { get; private set; } = DateTime.MaxValue;
         public static long MaxFileSize { get; private set; } = 1024 * 1024;
 
-        /* Search criteria */
         public static SortedSet<string> SearchComputers { get; } = new SortedSet<string>();
-
-#if DEBUG
-        public static SortedSet<string> SearchDirectories { get; } = new SortedSet<string>() { "C:\\share_test" };
-#else
         public static SortedSet<string> SearchDirectories { get; } = new SortedSet<string>();
-#endif
 
-        /* Search keywords */
-        public static SortedSet<string> SearchPatterns { get; } = new SortedSet<string>();
+        public static SortedSet<string> SearchDataPatterns { get; } = new SortedSet<string>();
+        public static SortedSet<string> SearchMetaPatterns { get; } = new SortedSet<string>();
 
-        /* Performance criteria */
+        public static SortedSet<string> SearchDataDefaultPatterns { get; } = new SortedSet<string>()
+        {
+            "CREATE\\s+USER\\s+(IF\\s+NOT\\s+EXISTS\\s+)?[^\\r\\n]{0,32}\\s+IDENTIFIED\\s+BY",
+            "CREATE\\s+LOGIN\\s+[^\\r\\n]{0,256}\\s+WITH\\s+PASSWORD",
+            "-----BEGIN\\s+([^\\r\\n]{0,100}\\s+)?PRIVATE\\s+KEY(\\s+BLOCK)?-----",
+            "((\"|')?AWS_ACCESS_KEY_ID(\"|')?\\s*(:|=>|=)\\s*)?(\"|')?AKIA[\\w]{16}(\"|')?",
+            "(\"|')?AWS_SECRET_ACCESS_KEY(\"|')?\\s*(:|=>|=)\\s*(\"|')?[\\w+/=]{40}(\"|')?",
+            "s3://[a-z0-9\\.\\-]{3,64}/?",
+            "pass(word|wrd|wd|w)(\\s*=\\s*(\"|')?)?",
+            "client_secret(\\s*=\\s*(\"|')?)?",
+            "secret(\\s*=\\s*(\"|')?)?",
+            "(api|aws|private)[_\\-\\.\\s]?key(\\s*=\\s*(\"|')?)?",
+        };
+
+        public static SortedSet<string> SearchMetaDefaultPatterns { get; } = new SortedSet<string>()
+        {
+            "pass(word|wrd|wd|w)?",
+            "secret",
+            "(api|aws|private)[_\\-\\.\\s]?key",
+        };
+
         public static int ThreadCount { get; private set; } = 10;
         public static int Timeout { get; private set; } = 2000;
 
-#if DEBUG
-        public static bool Verbose { get; private set; } = true;
-#else
-        public static bool Verbose { get; private set; } = false;
-#endif
+        public static bool Verbose { get; set; } = false;
 
         public static bool ParseArgs(string[] args)
         {
@@ -49,7 +58,7 @@ namespace Smaug
                 },
                 {
                     "a|afterdate=",
-                    "Only consider files last modified on or after this date\n\tFormat: dd-MM-yyyy",
+                    "Only consider files last modified >= this date\n\tFormat: dd-MM-yyyy",
                         x =>
                     {
                         if (DateTime.TryParseExact(x, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dt))
@@ -60,7 +69,7 @@ namespace Smaug
                 },
                 {
                     "b|beforedate=",
-                    "Only consider files last modified on or before this date\n\tFormat: dd-MM-yyyy",
+                    "Only consider files last modified <= this date\n\tFormat: dd-MM-yyyy",
                         x =>
                     {
                         if (DateTime.TryParseExact(x, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dt))
@@ -80,13 +89,28 @@ namespace Smaug
                         x => SearchDirectories.Add(x)
                 },
                 {
-                    "k|keyword=",
-                    "Include keyword in search (supports regex)",
-                        x => SearchPatterns.Add(x)
+                    "k|regex-content=",
+                    "Add pattern to file content search",
+                        x => SearchDataPatterns.Add(x)
+                },
+                {
+                    "default-content",
+                    "Include default patterns in file content search",
+                        x => SearchDataPatterns.UnionWith(SearchDataDefaultPatterns)
+                },
+                {
+                    "n|regex-name=",
+                    "Add pattern to file name search",
+                        x => SearchMetaPatterns.Add(x)
+                },
+                {
+                    "default-name",
+                    "Include default patterns in file name search",
+                        x => SearchMetaPatterns.UnionWith(SearchMetaDefaultPatterns)
                 },
                 {
                     "m|maxsize=",
-                    "Maximum file size in bytes (default: 1048576 (1 MiB))\n\tThe .NET framework supports a maximum of MAXINT (2147483647 bytes)",
+                    "Maximum file size in bytes\n\tDefault: 1048576",
                         x =>
                     {
                         if (int.TryParse(x, out int mfs))
@@ -96,8 +120,8 @@ namespace Smaug
                     }
                 },
                 {
-                    "th|threads=",
-                    "Number of concurrent threads (default: 10)",
+                    "threads=",
+                    "Number of concurrent threads\n\tDefault: 10",
                         x =>
                     {
                         if (int.TryParse(x, out int tc))
@@ -107,8 +131,8 @@ namespace Smaug
                     }
                 },
                 {
-                    "ti|timeout=",
-                    "Number of milliseconds to wait for connections (default: 2000)",
+                    "timeout=",
+                    "Number of milliseconds to wait for connections\n\tDefault: 2000",
                         x =>
                     {
                         if (int.TryParse(x, out int to))

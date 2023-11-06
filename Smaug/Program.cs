@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Threading;
 using System.Threading.Tasks;
 using Smaug.RulesData;
@@ -21,40 +22,92 @@ namespace Smaug
 
             if (ProgramOptions.ParseArgs(args))
             {
-                if (ProgramOptions.SearchPatterns.Count == 0)
+                if (ProgramOptions.SearchMetaPatterns.Count == 0)
                 {
-                    Printer.Information("No keywords specified. Restoring default keywords.");
-                    ProgramOptions.SearchPatterns.Add("CREATE\\s+USER\\s+(IF\\s+NOT\\s+EXISTS\\s+)?[^\\r\\n]{0,32}\\s+IDENTIFIED\\s+BY");
-                    ProgramOptions.SearchPatterns.Add("CREATE\\s+LOGIN\\s+[^\\r\\n]{0,256}\\s+WITH\\s+PASSWORD");
-                    ProgramOptions.SearchPatterns.Add("-----BEGIN\\s+([^\\r\\n]{0,100}\\s+)?PRIVATE\\s+KEY(\\s+BLOCK)?-----");
-                    ProgramOptions.SearchPatterns.Add("((\"|')?AWS_ACCESS_KEY_ID(\"|')?\\s*(:|=>|=)\\s*)?(\"|')?AKIA[\\w]{16}(\"|')?");
-                    ProgramOptions.SearchPatterns.Add("(\"|')?AWS_SECRET_ACCESS_KEY(\"|')?\\s*(:|=>|=)\\s*(\"|')?[\\w+/=]{40}(\"|')?");
-                    ProgramOptions.SearchPatterns.Add("s3://[a-z0-9\\.\\-]{3,64}/?");
-                    ProgramOptions.SearchPatterns.Add("pass(word|wrd|wd|w)(\\s*=\\s*(\"|')?)?");
-                    ProgramOptions.SearchPatterns.Add("<pass(word|wrd|wd|w)>[^\\r\\n]+</pass(word|wrd|wd|w)>");
-                    ProgramOptions.SearchPatterns.Add("secret(\\s*=\\s*(\"|')?)?");
-                    ProgramOptions.SearchPatterns.Add("(api|aws|private)[_\\-\\.\\s]?key(\\s*=\\s*(\"|')?)?");
-                    ProgramOptions.SearchPatterns.Add("client_secret(\\s*=\\s*(\"|')?)?");
+                    Printer.Information("No file name patterns specified. Restoring default patterns...");
+                    ProgramOptions.SearchMetaPatterns.UnionWith(ProgramOptions.SearchMetaDefaultPatterns);
                 }
+
+                Printer.Information("The search will include the following file name patterns:");
+                Printer.Information("");
+
+                foreach (var pattern in ProgramOptions.SearchMetaPatterns)
+                    Printer.Information("\t{0}", pattern);
+
+                Printer.Information("");
+
+                if (ProgramOptions.SearchDataPatterns.Count == 0)
+                {
+                    Printer.Information("No file content patterns specified. Restoring default patterns...");
+                    ProgramOptions.SearchDataPatterns.UnionWith(ProgramOptions.SearchDataDefaultPatterns);
+                }
+
+                Printer.Information("The search will include the following file content patterns:");
+                Printer.Information("");
+
+                foreach (var pattern in ProgramOptions.SearchDataPatterns)
+                    Printer.Information("\t{0}", pattern);
+
+                Printer.Information("");
 
                 var computers = ProgramOptions.SearchComputers;
                 var directories = ProgramOptions.SearchDirectories;
 
                 if (computers.Count == 0 && directories.Count == 0)
                 {
-                    Printer.Information("No targets specified. Enumerating all domain computers...");
-                    computers.UnionWith(LdapSearcher.GetDomainComputers());
-                    Printer.Information("Identified {0} domain computer(s)", computers.Count);
+                    Printer.Information("No targets specified. Finding targets automatically...");
+                    Printer.Information("Enumerating local drives...");
+                    Printer.Information("");
+
+                    foreach (var drive in DriveInfo.GetDrives())
+                    {
+                        if (drive.IsReady && drive.DriveType == DriveType.Fixed)
+                        {
+                            Printer.Information("\t{0}", drive.Name);
+                            directories.Add(drive.Name);
+                        }
+                    }
+
+                    Printer.Information("");
+                    Printer.Information("Identified {0} local drive(s).", directories.Count);
+
+                    if (IsPartOfDomain())
+                    {
+                        Printer.Information("Enumerating domain computers...");
+                        Printer.Information("");
+
+                        computers.UnionWith(LdapSearcher.GetDomainComputers());
+
+                        foreach (var computer in computers)
+                            Printer.Information("\t{0}", computer);
+
+                        Printer.Information("");
+                        Printer.Information("Identified {0} domain computer(s).", computers.Count);
+                    }
                 }
 
-                foreach (var share in NetworkShares.EnumerateShares(computers))
-                    directories.Add(share.ToString());
+                if (computers.Count != 0)
+                {
+                    var shares = new SortedSet<string>();
+                    Printer.Information("Enumerating shares on {0} domain computer(s).", computers.Count);
+                    Printer.Information("");
+
+                    foreach (var share in NetworkShares.EnumerateShares(computers))
+                        shares.Add(share.ToString());
+
+                    foreach (var share in shares)
+                        Printer.Information("\t{0}", share);
+
+                    Printer.Information("");
+                    Printer.Information("Identified {0} network share(s).", shares.Count);
+                    directories.UnionWith(shares);
+                }
 
                 if (directories.Count == 0)
-                    Printer.Error("Could not identify any targets");
+                    Printer.Error("Could not identify any targets.");
                 else
                 {
-                    Printer.Information("Targeting {0} total directories", directories.Count);
+                    Printer.Information("Launching scan against {0} target(s).", directories.Count);
 
                     int index = 0;
                     int length = directories.Count;
@@ -73,6 +126,17 @@ namespace Smaug
 
             if (Debugger.IsAttached)
                 Console.ReadKey();
+        }
+
+        private static bool IsPartOfDomain()
+        {
+            using (var cs = new ManagementObject(string.Format("Win32_ComputerSystem.Name='{0}'", Environment.MachineName)))
+            {
+                cs.Get();
+
+                var pod = cs["PartOfDomain"];
+                return (pod != null && (bool)pod != false);
+            }
         }
 
         private static void TraverseDirectory(string path)

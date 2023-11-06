@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Smaug.RulesMeta.File
 {
-    class MetaRuleNameSuffix : IMetaRule
+    class MetaRuleNameSuffix : MetaRule
     {
         private List<string> AcceptNameSuffixes { get; } = new List<string>()
         {
@@ -20,7 +20,7 @@ namespace Smaug.RulesMeta.File
 
         };
 
-        public bool? TestRule(string path)
+        public override bool? TestRule(string path)
         {
             var name = Path.GetFileName(path);
 

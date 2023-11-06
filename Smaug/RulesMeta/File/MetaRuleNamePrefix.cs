@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Smaug.RulesMeta.File
 {
-    class MetaRuleNamePrefix : IMetaRule
+    class MetaRuleNamePrefix : MetaRule
     {
         private List<string> AcceptNamePrefixes { get; } = new List<string>()
         {
@@ -16,7 +16,7 @@ namespace Smaug.RulesMeta.File
 
         };
 
-        public bool? TestRule(string path)
+        public override bool? TestRule(string path)
         {
             var name = Path.GetFileName(path);
 

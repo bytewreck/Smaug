@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Smaug.RulesMeta.File
 {
-    class MetaRuleName : IMetaRule
+    class MetaRuleName : MetaRule
     {
         private HashSet<string> AcceptNames { get; } = new HashSet<string>()
         {
@@ -93,7 +93,7 @@ namespace Smaug.RulesMeta.File
 
         };
 
-        public bool? TestRule(string path)
+        public override bool? TestRule(string path)
         {
             var name = Path.GetFileName(path);
 

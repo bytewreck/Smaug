@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Smaug.RulesMeta.File
 {
-    class MetaRuleRegex : IMetaRule
+    class MetaRuleRegex : MetaRule
     {
         private HashSet<string> AcceptNames { get; } = new HashSet<string>()
         {
@@ -17,7 +17,7 @@ namespace Smaug.RulesMeta.File
 
         };
 
-        public bool? TestRule(string path)
+        public override bool? TestRule(string path)
         {
             var name = Path.GetFileName(path);
 
@@ -27,7 +27,7 @@ namespace Smaug.RulesMeta.File
 
                 if (RejectNames.Any(s => Regex.IsMatch(temp, s)))
                     return false;
-                else if (AcceptNames.Any(s => Regex.IsMatch(temp, s)) || ProgramOptions.SearchPatterns.Any(k => Regex.IsMatch(temp, k)))
+                else if (AcceptNames.Any(s => Regex.IsMatch(temp, s)) || base.TestDefaultRegex(temp))
                     return true;
             }
 
