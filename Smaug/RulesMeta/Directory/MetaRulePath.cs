@@ -122,7 +122,7 @@ namespace Smaug.RulesMeta.Directory
             "\\appdata\\local\\npm-cache",
             "\\lib\\site-packages",
             "\\lib\\ruby",
-            "\\node_modules",
+            "\\node_modules"
         };
 
         public bool? TestRule(string path)

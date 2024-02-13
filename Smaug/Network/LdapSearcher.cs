@@ -24,7 +24,7 @@ namespace Smaug
                 {
                     using (var dir_search = new DirectorySearcher(dir_entry, "(&(objectClass=computer)(dNSHostName=*))"))
                     {
-                        // dir_search.PageSize = ?
+                        dir_search.PageSize = 1000;
                         // dir_search.PropertiesToLoad = ?
 
                         using (var dir_results = dir_search.FindAll())

@@ -24,12 +24,12 @@ namespace Smaug
             "CREATE\\s+USER\\s+(IF\\s+NOT\\s+EXISTS\\s+)?[^\\r\\n]{0,32}\\s+IDENTIFIED\\s+BY",
             "CREATE\\s+LOGIN\\s+[^\\r\\n]{0,256}\\s+WITH\\s+PASSWORD",
             "-----BEGIN\\s+([^\\r\\n]{0,100}\\s+)?PRIVATE\\s+KEY(\\s+BLOCK)?-----",
-            "((\"|')?AWS_ACCESS_KEY_ID(\"|')?\\s*(:|=>|=)\\s*)?(\"|')?AKIA[\\w]{16}(\"|')?",
+            //"((\"|')?AWS_ACCESS_KEY_ID(\"|')?\\s*(:|=>|=)\\s*)?(\"|')?AKIA[\\w]{16}(\"|')?",
             "(\"|')?AWS_SECRET_ACCESS_KEY(\"|')?\\s*(:|=>|=)\\s*(\"|')?[\\w+/=]{40}(\"|')?",
             "s3://[a-z0-9\\.\\-]{3,64}/?",
             "pass(word|wrd|wd|w)(\\s*=\\s*(\"|')?)?",
             "client_secret(\\s*=\\s*(\"|')?)?",
-            "secret(\\s*=\\s*(\"|')?)?",
+            //"secret(\\s*=\\s*(\"|')?)?",
             "(api|aws|private)[_\\-\\.\\s]?key(\\s*=\\s*(\"|')?)?",
         };
 

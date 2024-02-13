@@ -10,22 +10,22 @@ namespace Smaug.RulesData
 {
     class DataRule : IDataRule
     {
-        public virtual bool? TestRule(string path, byte[] contents, ref List<string> snippets)
+        public virtual bool? TestRule(string path, byte[] contents, ref List<Tuple<string, string, string>> snippets)
         {
             return TestRuleString(path, Encoding.ASCII.GetString(contents), ref snippets, ProgramOptions.SearchDataPatterns);
         }
 
-        protected bool? TestRule(string path, byte[] contents, ref List<string> snippets, SortedSet<string> keywords)
+        protected bool? TestRule(string path, byte[] contents, ref List<Tuple<string, string, string>> snippets, SortedSet<string> keywords)
         {
             return TestRuleString(path, Encoding.ASCII.GetString(contents), ref snippets, keywords);
         }
 
-        protected bool? TestRuleString(string path, string contents, ref List<string> snippets)
+        protected bool? TestRuleString(string path, string contents, ref List<Tuple<string, string, string>> snippets)
         {
             return TestRuleString(path, contents, ref snippets, ProgramOptions.SearchDataPatterns);
         }
 
-        protected bool? TestRuleString(string path, string contents, ref List<string> snippets, SortedSet<string> keywords)
+        protected bool? TestRuleString(string path, string contents, ref List<Tuple<string, string, string>> snippets, SortedSet<string> keywords)
         {
             if (!string.IsNullOrEmpty(contents))
             {
@@ -44,7 +44,7 @@ namespace Smaug.RulesData
             (char)0x18, (char)0x19, (char)0x1a, (char)0x1b, (char)0x1c, (char)0x1d, (char)0x1e, (char)0x1f,
         };
 
-        protected void GetRegexRanges(string contents, string pattern, ref List<string> snippets)
+        protected void GetRegexRanges(string contents, string pattern, ref List<Tuple<string, string, string>> snippets)
         {
             foreach (Match m in Regex.Matches(contents, pattern, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase))
             {
@@ -83,8 +83,13 @@ namespace Smaug.RulesData
                             snippet = snippet + "...";
                     }
 
+                    snippet = snippet.Trim();
+
                     /* Finalize the snippet */
-                    snippets.Add(snippet.Trim());
+                    string s1 = snippet.Substring(0, snippet.IndexOf(m.Value));
+                    string s2 = snippet.Substring(snippet.IndexOf(m.Value) + m.Length);
+
+                    snippets.Add(Tuple.Create(s1, m.Value, s2));
                 }
             }
         }

@@ -36,7 +36,7 @@ namespace Smaug.RulesData.File
             "ConvertFrom\\-SecureString\\s[^\\r\\n]{0,400}\\s\\-AsPlainText",
         };
 
-        public override bool? TestRule(string path, byte[] contents, ref List<string> snippets)
+        public override bool? TestRule(string path, byte[] contents, ref List<Tuple<string, string, string>> snippets)
         {
             var extension = Path.GetExtension(path);
 

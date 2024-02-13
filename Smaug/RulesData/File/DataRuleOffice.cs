@@ -1,4 +1,6 @@
-﻿using System;
+﻿using iTextSharp.text.pdf;
+using iTextSharp.text.pdf.parser;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Packaging;
@@ -11,9 +13,9 @@ namespace Smaug.RulesData.File
 {
     class DataRuleOffice : DataRule
     {
-        public override bool? TestRule(string path, byte[] contents, ref List<string> snippets)
+        public override bool? TestRule(string path, byte[] contents, ref List<Tuple<string, string, string>> snippets)
         {
-            var extension = Path.GetExtension(path);
+            var extension = System.IO.Path.GetExtension(path);
 
             if (!string.IsNullOrEmpty(extension))
             {
@@ -87,7 +89,7 @@ namespace Smaug.RulesData.File
 
                     /* Microsoft Outlook */
                     case ".eml":
-                        return base.TestRule(path, contents, ref snippets);
+                        return base.TestRuleString(path, MailEmlToPlaintext(contents), ref snippets);
 
                     case ".oft": // The format supports both ASCII and UTF-16 versions
                     case ".msg": // The format supports both ASCII and UTF-16 versions
@@ -107,9 +109,25 @@ namespace Smaug.RulesData.File
                             base.TestRuleString(path, Encoding.Unicode.GetString(contents), ref snippets) |
                             base.TestRuleString(path, Encoding.Unicode.GetString(contents.Skip(1).ToArray()), ref snippets);
 
+                    /* Microsoft Visio */
+                    case ".vsdx": // Visio drawing
+                    case ".vsdm": // Visio macro-enabled drawing
+                    case ".vssx": // Visio stencil
+                    case ".vssm": // Visio macro-enabled stencil
+                    case ".vstx": // Visio template
+                    case ".vstm": // Visio macro-enabled template
+                        return false; // To be done
+
+                    case ".vsd":
+                        return false;
+
                     /* XPS */
                     case ".xps": // XML-based document format used for printing and preserving documents.
                         return base.TestRuleString(path, XpsXmlToPlaintext(contents), ref snippets);
+
+                    /* PDF */
+                    case ".pdf":
+                        return base.TestRuleString(path, PdfToPlaintext(path, contents), ref snippets);
 
                     default:
                         break;
@@ -122,6 +140,36 @@ namespace Smaug.RulesData.File
         public override string ToString()
         {
             return "data:office";
+        }
+
+        private string PdfToPlaintext(string path, byte[] contents)
+        {
+            using (var pdf = new PdfReader(contents))
+            {
+                var sb = new StringBuilder();
+
+                for (int i = 0; i < pdf.NumberOfPages; i++)
+                    sb.Append(Encoding.UTF8.GetString(Encoding.Convert(Encoding.Default, Encoding.UTF8, Encoding.Default.GetBytes(PdfTextExtractor.GetTextFromPage(pdf, 1 + i)))));
+
+                return sb.ToString();
+            }
+        }
+         
+        private string MailEmlToPlaintext(byte[] contents)
+        {
+            ADODB.Stream stream = new ADODB.StreamClass();
+            stream.Open();
+            stream.Type = ADODB.StreamTypeEnum.adTypeBinary;
+            stream.Write(contents);
+            stream.Flush();
+
+            CDO.Message msg = new CDO.MessageClass();
+            msg.DataSource.OpenObject(stream, "_Stream");
+            msg.DataSource.Save();
+
+            stream.Close();
+
+            return msg.TextBody;
         }
 
         private string WordXmlToPlaintext(byte[] contents)

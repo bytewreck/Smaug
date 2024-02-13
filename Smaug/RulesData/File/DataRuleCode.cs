@@ -90,7 +90,7 @@ namespace Smaug.RulesData.File
             "New\\s+sqlConnection\\(\"",
         };
         
-        public override bool? TestRule(string path, byte[] contents, ref List<string> snippets)
+        public override bool? TestRule(string path, byte[] contents, ref List<Tuple<string, string, string>> snippets)
         {
             var extension = Path.GetExtension(path);
 

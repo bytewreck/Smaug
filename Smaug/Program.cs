@@ -19,6 +19,7 @@ namespace Smaug
         static void Main(string[] args)
         {
             var sw = new Stopwatch();
+            sw.Start();
 
             if (ProgramOptions.ParseArgs(args))
             {
@@ -56,20 +57,20 @@ namespace Smaug
                 if (computers.Count == 0 && directories.Count == 0)
                 {
                     Printer.Information("No targets specified. Finding targets automatically...");
-                    Printer.Information("Enumerating local drives...");
-                    Printer.Information("");
+                    //Printer.Information("Enumerating local drives...");
+                    //Printer.Information("");
 
-                    foreach (var drive in DriveInfo.GetDrives())
-                    {
-                        if (drive.IsReady && drive.DriveType == DriveType.Fixed)
-                        {
-                            Printer.Information("\t{0}", drive.Name);
-                            directories.Add(drive.Name);
-                        }
-                    }
+                    //foreach (var drive in DriveInfo.GetDrives())
+                    //{
+                    //    if (drive.IsReady && drive.DriveType == DriveType.Fixed)
+                    //    {
+                    //        Printer.Information("\t{0}", drive.Name);
+                    //        directories.Add(drive.Name);
+                    //    }
+                    //}
 
-                    Printer.Information("");
-                    Printer.Information("Identified {0} local drive(s).", directories.Count);
+                    //Printer.Information("");
+                    //Printer.Information("Identified {0} local drive(s).", directories.Count);
 
                     if (IsPartOfDomain())
                     {
@@ -121,6 +122,8 @@ namespace Smaug
                     });
                 }
             }
+
+            sw.Stop();
 
             Console.WriteLine("Done. Time elapsed: {0}", sw.Elapsed);
 
@@ -240,8 +243,10 @@ namespace Smaug
                 {
                     if (result.Value)
                         Printer.MatchRule(rule.ToString(), path);
+#if DEBUG
                     else if (ProgramOptions.Verbose)
                         Printer.Debug("Rejecting ({0}): {1}", rule, path);
+#endif
 
                     return true;
                 }
@@ -253,9 +258,9 @@ namespace Smaug
         private static List<IDataRule> FileContentRules { get; } = new List<IDataRule>()
         {
             new DataRuleCode(),
-            new DataRuleConfig(),
             new DataRuleOffice(),
             new DataRuleScript(),
+            new DataRulePlaintext(),
         };
 
         static private bool IsMatchContentRules(FileStream fs, string path, List<IDataRule> rules)
@@ -265,7 +270,7 @@ namespace Smaug
             for (int offset = 0, read = 0; offset < (int)fs.Length; offset += read)
                 read = fs.Read(contents, offset, (int)fs.Length - offset);
 
-            var snippets = new List<string>();
+            var snippets = new List<Tuple<string, string, string>>();
 
             foreach (var rule in rules)
             {
@@ -275,8 +280,10 @@ namespace Smaug
                 {
                     if (result.Value)
                         Printer.MatchRule(rule.ToString(), path, snippets);
+#if DEBUG
                     else if (ProgramOptions.Verbose)
                         Printer.Debug("Rejecting ({0}): {1}", rule, path);
+#endif
 
                     return true;
                 }

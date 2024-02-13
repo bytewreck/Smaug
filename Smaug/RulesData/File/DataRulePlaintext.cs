@@ -4,7 +4,7 @@ using System.IO;
 
 namespace Smaug.RulesData.File
 {
-    class DataRuleConfig : DataRule
+    class DataRulePlaintext : DataRule
     {
         private HashSet<string> AcceptExtensions { get; } = new HashSet<string>()
         {
@@ -13,6 +13,7 @@ namespace Smaug.RulesData.File
             ".cnf",
             ".conf",
             ".config",
+            ".csv",
             ".env",
             ".ini",
             ".inf",
@@ -27,7 +28,7 @@ namespace Smaug.RulesData.File
             ".xml",
         };
 
-        public override bool? TestRule(string path, byte[] contents, ref List<string> snippets)
+        public override bool? TestRule(string path, byte[] contents, ref List<Tuple<string, string, string>> snippets)
         {
             var extension = Path.GetExtension(path);
 

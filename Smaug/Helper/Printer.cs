@@ -14,7 +14,7 @@ namespace Smaug
             }
         }
 
-        public static void MatchRule(string rule_name, string path, List<string> snippets)
+        public static void MatchRule(string rule_name, string path, List<Tuple<string, string, string>> snippets)
         {
             lock (Console.Out)
             {
@@ -23,7 +23,11 @@ namespace Smaug
                 foreach (var snippet in snippets)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine("\t- " + snippet);
+                    Console.Write("\t- " + snippet.Item1);
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.Write(snippet.Item2);
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    Console.WriteLine(snippet.Item3);
                 }
 
                 Console.ResetColor();
