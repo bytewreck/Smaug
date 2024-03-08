@@ -98,7 +98,7 @@ namespace Smaug
                         {
                             foreach (var share in NetworkShares.EnumerateShares(hostname))
                             {
-                                Printer.Information("\t{0} (description: {1})", share.ToString(), share.Description);
+                                Printer.Information("\t{0} (description: {1})", share.ToString(), share.Description.Trim());
                                 shares.Add(share.ToString());
                             }
                         }
