@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.DirectoryServices;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Smaug.RulesData;
@@ -23,92 +26,94 @@ namespace Smaug
 
             if (ProgramOptions.ParseArgs(args))
             {
-                if (ProgramOptions.SearchMetaPatterns.Count == 0)
+                if (ProgramOptions.SearchMetaPatterns.Count == 0 && ProgramOptions.SearchDataPatterns.Count == 0)
                 {
-                    Printer.Information("No file name patterns specified. Restoring default patterns...");
+                    Printer.Information("No patterns specified. Restoring default patterns...\n");
                     ProgramOptions.SearchMetaPatterns.UnionWith(ProgramOptions.SearchMetaDefaultPatterns);
-                }
-
-                Printer.Information("The search will include the following file name patterns:");
-                Printer.Information("");
-
-                foreach (var pattern in ProgramOptions.SearchMetaPatterns)
-                    Printer.Information("\t{0}", pattern);
-
-                Printer.Information("");
-
-                if (ProgramOptions.SearchDataPatterns.Count == 0)
-                {
-                    Printer.Information("No file content patterns specified. Restoring default patterns...");
                     ProgramOptions.SearchDataPatterns.UnionWith(ProgramOptions.SearchDataDefaultPatterns);
                 }
 
-                Printer.Information("The search will include the following file content patterns:");
-                Printer.Information("");
+                if (ProgramOptions.SearchMetaPatterns.Count != 0)
+                {
+                    Printer.Information("The search will include the following meta patterns (file name):\n");
 
-                foreach (var pattern in ProgramOptions.SearchDataPatterns)
-                    Printer.Information("\t{0}", pattern);
+                    foreach (var pattern in ProgramOptions.SearchMetaPatterns)
+                        Printer.Information("\t{0}", pattern);
 
-                Printer.Information("");
+                    Printer.Information("");
+                }
+
+                if (ProgramOptions.SearchDataPatterns.Count != 0)
+                {
+                    Printer.Information("The search will include the following data patterns (file contents):\n");
+
+                    foreach (var pattern in ProgramOptions.SearchDataPatterns)
+                        Printer.Information("\t{0}", pattern);
+
+                    Printer.Information("");
+                }
 
                 var computers = ProgramOptions.SearchComputers;
                 var directories = ProgramOptions.SearchDirectories;
 
                 if (computers.Count == 0 && directories.Count == 0)
                 {
-                    Printer.Information("No targets specified. Finding targets automatically...");
-                    //Printer.Information("Enumerating local drives...");
-                    //Printer.Information("");
-
-                    //foreach (var drive in DriveInfo.GetDrives())
-                    //{
-                    //    if (drive.IsReady && drive.DriveType == DriveType.Fixed)
-                    //    {
-                    //        Printer.Information("\t{0}", drive.Name);
-                    //        directories.Add(drive.Name);
-                    //    }
-                    //}
-
-                    //Printer.Information("");
-                    //Printer.Information("Identified {0} local drive(s).", directories.Count);
+                    Printer.Information("No targets specified. Finding targets automatically...\n");
 
                     if (IsPartOfDomain())
                     {
-                        Printer.Information("Enumerating domain computers...");
-                        Printer.Information("");
+                        Printer.Information("Enumerating domain computers...\n");
 
-                        computers.UnionWith(LdapSearcher.GetDomainComputers());
-
-                        foreach (var computer in computers)
+                        foreach (var computer in GetDomainComputers())
+                        {
                             Printer.Information("\t{0}", computer);
+                            computers.Add(computer);
+                        }
 
-                        Printer.Information("");
-                        Printer.Information("Identified {0} domain computer(s).", computers.Count);
+                        Printer.Information("\nIdentified {0} domain computer(s).\n", computers.Count);
+                    }
+                    else
+                    {
+                        Printer.Information("Enumerating local drives...\n");
+
+                        foreach (var drive in GetLocalDrives())
+                        {
+                            Printer.Information("\t{0}", drive);
+                            directories.Add(drive);
+                        }
+
+                        Printer.Information("\nIdentified {0} local drive(s).\n", directories.Count);
                     }
                 }
 
                 if (computers.Count != 0)
                 {
-                    var shares = new SortedSet<string>();
-                    Printer.Information("Enumerating shares on {0} domain computer(s).", computers.Count);
-                    Printer.Information("");
+                    Printer.Information("Enumerating shares on {0} domain computer(s).\n", computers.Count);
 
-                    foreach (var share in NetworkShares.EnumerateShares(computers))
-                        shares.Add(share.ToString());
+                    var shares = new ConcurrentBag<string>();
 
-                    foreach (var share in shares)
-                        Printer.Information("\t{0}", share);
+                    Parallel.ForEach(computers, new ParallelOptions() { MaxDegreeOfParallelism = ProgramOptions.ThreadCount }, hostname =>
+                    {
+                        if (IsPortOpen(hostname, 445) || IsPortOpen(hostname, 139))
+                        {
+                            foreach (var share in NetworkShares.EnumerateShares(hostname))
+                            {
+                                Printer.Information("\t{0} (description: {1})", share.ToString(), share.Description);
+                                shares.Add(share.ToString());
+                            }
+                        }
+                    });
 
-                    Printer.Information("");
-                    Printer.Information("Identified {0} network share(s).", shares.Count);
-                    directories.UnionWith(shares);
+                    Printer.Information("\nIdentified {0} network share(s).\n", shares.Count);
+
+                    directories.UnionWith(shares.ToList());
                 }
 
                 if (directories.Count == 0)
                     Printer.Error("Could not identify any targets.");
                 else
                 {
-                    Printer.Information("Launching scan against {0} target(s).", directories.Count);
+                    Printer.Information("Launching scan against {0} target(s).\n", directories.Count);
 
                     int index = 0;
                     int length = directories.Count;
@@ -139,6 +144,56 @@ namespace Smaug
 
                 var pod = cs["PartOfDomain"];
                 return (pod != null && (bool)pod != false);
+            }
+        }
+
+        private static bool IsPortOpen(string host, int port)
+        {
+            try
+            {
+                using (var client = new TcpClient())
+                {
+                    var task = client.ConnectAsync(host, port);
+                    return (task.Wait(ProgramOptions.Timeout) && client.Connected);
+                }
+            }
+            catch (Exception e)
+            {
+                if (ProgramOptions.Verbose)
+                    Printer.Warning(e.Message);
+
+                return false;
+            }
+        }
+
+        private static IEnumerable<string> GetDomainComputers()
+        {
+            using (var root_dse = new DirectoryEntry("LDAP://RootDSE"))
+            {
+                var search_base = string.Format("LDAP://{0}", root_dse.Properties["defaultNamingContext"].Value);
+
+                using (var dir_entry = new DirectoryEntry(search_base))
+                {
+                    using (var dir_search = new DirectorySearcher(dir_entry, "(&(objectClass=computer)(dNSHostName=*))"))
+                    {
+                        dir_search.PageSize = 1000;
+
+                        using (var dir_results = dir_search.FindAll())
+                        {
+                            foreach (SearchResult dir_result in dir_results)
+                                yield return dir_result.Properties["dNSHostName"][0].ToString();
+                        }
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<string> GetLocalDrives()
+        {
+            foreach (var drive in DriveInfo.GetDrives())
+            {
+                if (drive.IsReady && drive.DriveType == DriveType.Fixed)
+                    yield return drive.Name;
             }
         }
 

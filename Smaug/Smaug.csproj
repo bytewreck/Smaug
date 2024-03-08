@@ -96,8 +96,7 @@
     <Compile Include="ProgramOptions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Network\LdapSearcher.cs" />
-    <Compile Include="Network\NetworkShares.cs" />
+    <Compile Include="Helper\NetworkShares.cs" />
     <Compile Include="RulesMeta\MetaRule.cs" />
   </ItemGroup>
   <ItemGroup>

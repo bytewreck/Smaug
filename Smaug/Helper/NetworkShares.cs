@@ -43,25 +43,8 @@ namespace Smaug
             public string shi1_remark;
         }
 
-        public static List<NetworkShares> EnumerateShares(SortedSet<string> hostnames)
+        public static IEnumerable<NetworkShares> EnumerateShares(string hostname)
         {
-            var shares = new ConcurrentBag<NetworkShares>();
-
-            Parallel.ForEach(hostnames, new ParallelOptions() { MaxDegreeOfParallelism = ProgramOptions.ThreadCount }, hostname =>
-            {
-                if (IsPortOpen(hostname, 445) || IsPortOpen(hostname, 139))
-                {
-                    foreach (var share in EnumerateShares(hostname))
-                        shares.Add(share);
-                }
-            });
-
-            return shares.ToList();
-        }
-        
-        private static List<NetworkShares> EnumerateShares(string hostname)
-        {
-            var shares = new List<NetworkShares>();
             int resume_handle = 0;
 
             if (NetShareEnum(hostname, 1, out IntPtr bufptr, 0xFFFFFFFF, out int entriesread, out int totalentries, ref resume_handle) == 0)
@@ -74,33 +57,12 @@ namespace Smaug
 
                     // Ignore (disktree, printq, device, ipc) and (special / built-in) shares
                     if ((shi.shi1_type & STYPE_MASK) == 0 && (shi.shi1_type & STYPE_SPECIAL) == 0)
-                        shares.Add(new NetworkShares(hostname, shi.shi1_netname, shi.shi1_remark));
+                        yield return new NetworkShares(hostname, shi.shi1_netname, shi.shi1_remark);
 
                     current_ptr = IntPtr.Add(current_ptr, Marshal.SizeOf<SHARE_INFO_1>());
                 }
 
                 NetApiBufferFree(bufptr);
-            }
-
-            return shares;
-        }
-
-        private static bool IsPortOpen(string host, int port)
-        {
-            try
-            {
-                using (var client = new TcpClient())
-                {
-                    var task = client.ConnectAsync(host, port);
-                    return (task.Wait(ProgramOptions.Timeout) && client.Connected);
-                }
-            }
-            catch (Exception e)
-            {
-                if (ProgramOptions.Verbose)
-                    Printer.Warning(e.Message);
-
-                return false;
             }
         }
     }
