@@ -35,7 +35,7 @@ namespace Smaug
 
                 if (ProgramOptions.SearchMetaPatterns.Count != 0)
                 {
-                    Printer.Information("The search will include the following meta patterns (file name):\n");
+                    Printer.Information("The search will include the following meta patterns (file names):\n");
 
                     foreach (var pattern in ProgramOptions.SearchMetaPatterns)
                         Printer.Information("\t{0}", pattern);
@@ -160,15 +160,22 @@ namespace Smaug
             catch (Exception e)
             {
                 if (ProgramOptions.Verbose)
-                    Printer.Warning(e.Message);
+                    Printer.Warning("Port scan ({0}:{1}) failed: {2}", host, port, e.Message);
 
                 return false;
             }
         }
 
-        private static IEnumerable<string> GetDomainComputers()
+        private static IEnumerable<string> GetDomainComputers(string domain = null)
         {
-            using (var root_dse = new DirectoryEntry("LDAP://RootDSE"))
+            string root_dse_path = null;
+
+            if (string.IsNullOrEmpty(domain))
+                root_dse_path = string.Format("LDAP://RootDSE");
+            else
+                root_dse_path = string.Format("LDAP://{0}/RootDSE", domain);
+
+            using (var root_dse = new DirectoryEntry(root_dse_path))
             {
                 var search_base = string.Format("LDAP://{0}", root_dse.Properties["defaultNamingContext"].Value);
 
