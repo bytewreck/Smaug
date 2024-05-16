@@ -13,6 +13,8 @@ namespace Smaug
         public static DateTime BeforeDate { get; private set; } = DateTime.MaxValue;
         public static long MaxFileSize { get; private set; } = 1024 * 1024;
 
+        public static string Domain { get; private set; } = string.Empty;
+
         public static SortedSet<string> SearchComputers { get; } = new SortedSet<string>();
         public static SortedSet<string> SearchDirectories { get; } = new SortedSet<string>();
 
