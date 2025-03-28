@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -23,83 +23,8 @@ namespace Smaug
 {
     class Program
     {
-        [Flags]
-        public enum AllocationProtect : uint
-        {
-            PAGE_NOACCESS           = 0x00000001,
-            PAGE_READONLY           = 0x00000002,
-            PAGE_READWRITE          = 0x00000004,
-            PAGE_WRITECOPY          = 0x00000008,
-            PAGE_EXECUTE            = 0x00000010,
-            PAGE_EXECUTE_READ       = 0x00000020,
-            PAGE_EXECUTE_READWRITE  = 0x00000040,
-            PAGE_EXECUTE_WRITECOPY  = 0x00000080,
-            PAGE_GUARD              = 0x00000100,
-            PAGE_NOCACHE            = 0x00000200,
-            PAGE_WRITECOMBINE       = 0x00000400
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MEMORY_BASIC_INFORMATION
-        {
-            public IntPtr BaseAddress;
-            public IntPtr AllocationBase;
-            public AllocationProtect AllocationProtect;
-            public IntPtr RegionSize;
-            public uint State;
-            public AllocationProtect Protect;
-            public uint Type;
-        }
-
-        [DllImport("kernel32.dll")]
-        static extern int VirtualQuery(IntPtr lpAddress, out MEMORY_BASIC_INFORMATION lpBuffer, int dwLength);
-
-        static void Prepare()
-        {
-            void PlusOne()
-            {
-                return;
-            }
-
-            var a = Assembly.GetExecutingAssembly().GetType("iTextSharp.text.log.DefaultCounter");
-            var b = a.GetMethod("PlusOne", BindingFlags.Instance | BindingFlags.NonPublic).MethodHandle.GetFunctionPointer();
-            var c = Marshal.GetFunctionPointerForDelegate(new Action(PlusOne));
-
-            IntPtr address = IntPtr.Zero;
-
-            while (VirtualQuery(address, out MEMORY_BASIC_INFORMATION buffer, Marshal.SizeOf<MEMORY_BASIC_INFORMATION>()) == Marshal.SizeOf<MEMORY_BASIC_INFORMATION>())
-            {
-                if (buffer.BaseAddress != IntPtr.Zero && (
-                    buffer.Protect.HasFlag(AllocationProtect.PAGE_READONLY) ||
-                    buffer.Protect.HasFlag(AllocationProtect.PAGE_READWRITE) ||
-                    buffer.Protect.HasFlag(AllocationProtect.PAGE_EXECUTE_READ) ||
-                    buffer.Protect.HasFlag(AllocationProtect.PAGE_EXECUTE_READWRITE)))
-                {
-                    for (int i = 0; i < (buffer.RegionSize.ToInt32() - Marshal.SizeOf<IntPtr>()); i++)
-                    {
-                        try
-                        {
-                            if (Marshal.ReadIntPtr(buffer.BaseAddress, i) == b)
-                            {
-                                Marshal.WriteIntPtr(buffer.BaseAddress, i, c);
-                                Console.WriteLine("{0,08:X} {1,08:X} {2,08:X}", buffer.BaseAddress, buffer.AllocationBase, buffer.RegionSize);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            //Console.WriteLine(e.Message);
-                        }
-                    }
-                }
-
-                address = new IntPtr(buffer.BaseAddress.ToInt64() + buffer.RegionSize.ToInt64());
-            }
-        }
-
         static void Main(string[] args)
         {
-            Prepare();
-
             var sw = new Stopwatch();
             sw.Start();
 
@@ -139,17 +64,33 @@ namespace Smaug
                 {
                     Printer.Information("No targets specified. Finding targets automatically...\n");
 
-                    if (IsPartOfDomain())
+                    if (ProgramOptions.SearchDomains.Count == 0 && IsPartOfDomain())
+                        ProgramOptions.SearchDomains.Add(string.Empty);
+
+                    if (ProgramOptions.SearchDomains.Count != 0)   
                     {
-                        Printer.Information("Enumerating domain computers...\n");
-
-                        foreach (var computer in GetDomainComputers(ProgramOptions.Domain))
+                        foreach (var domain in ProgramOptions.SearchDomains)
                         {
-                            Printer.Information("\t{0}", computer);
-                            computers.Add(computer);
-                        }
+                            if (domain == null)
+                                Printer.Information("Enumerating domain computers...\n");
+                            else
+                                Printer.Information("Enumerating domain computers in '{0}'...\n", domain);
 
-                        Printer.Information("\nIdentified {0} domain computer(s).\n", computers.Count);
+                            int i = computers.Count;
+
+                            foreach (var computer in GetDomainComputers(domain))
+                            {
+                                if (ProgramOptions.Verbose)
+                                    Printer.Information("\t{0}", computer);
+
+                                computers.Add(computer);
+                            }
+
+                            if (domain == null)
+                                Printer.Information("\nIdentified {0} domain computer(s).\n", computers.Count - i);
+                            else
+                                Printer.Information("\nIdentified {0} domain computer(s) in '{1}'.\n", computers.Count - i, domain);
+                        }
                     }
                     else
                     {
@@ -177,7 +118,13 @@ namespace Smaug
                         {
                             foreach (var share in NetworkShares.EnumerateShares(hostname))
                             {
-                                Printer.Information("\t{0} (description: {1})", share.ToString(), share.Description.Trim());
+                                var description = share.Description.Trim();
+
+                                if (string.IsNullOrEmpty(description))
+                                    Printer.Information("\t{0}", share.ToString());
+                                else
+                                    Printer.Information("\t{0} (description: {1})", share.ToString(), description);
+
                                 shares.Add(share.ToString());
                             }
                         }
@@ -245,7 +192,7 @@ namespace Smaug
             }
         }
 
-        private static IEnumerable<string> GetDomainComputers(string domain)
+        private static IEnumerable<string> GetDomainComputers(string domain = null)
         {
             string root_dse_path = null;
 
