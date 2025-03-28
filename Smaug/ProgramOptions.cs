@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -9,13 +9,27 @@ namespace Smaug
 {
     class ProgramOptions
     {
+        public enum SearchModes
+        {
+            Local,
+            Domain,
+        }
+
         public static DateTime AfterDate { get; private set; } = DateTime.MinValue;
         public static DateTime BeforeDate { get; private set; } = DateTime.MaxValue;
         public static long MaxFileSize { get; private set; } = 1024 * 1024;
 
-        public static string Domain { get; private set; } = string.Empty;
-
+        public static SearchModes SearchMode { get; private set; } = SearchModes.Domain;
+        
+        /* For:
+         * SearchModes.Domain
+         */
+        public static SortedSet<string> SearchDomains { get; } = new SortedSet<string>();
         public static SortedSet<string> SearchComputers { get; } = new SortedSet<string>();
+        /* For both:
+         * SearchModes.Local
+         * SearchModes.Domain
+         */
         public static SortedSet<string> SearchDirectories { get; } = new SortedSet<string>();
 
         public static SortedSet<string> SearchDataPatterns { get; } = new SortedSet<string>();
@@ -79,6 +93,11 @@ namespace Smaug
                         else
                             Printer.Warning("Incorrect DateTime format (--beforedate). Skipping option...");
                     }
+                },
+                {
+                    "domain=",
+                    "Include domain in search",
+                        x => SearchDomains.Add(x)
                 },
                 {
                     "c|computer=",
