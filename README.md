@@ -1,2 +1,2 @@
 # Smaug
- A file scanner for penetration testers
+ A network share file scanner for penetration testers.
